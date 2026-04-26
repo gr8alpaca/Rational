@@ -25,6 +25,7 @@ func notify_tree_changed() -> void:
 	tree_changed.emit()
 
 func has_child(comp: RationalComponent, recursive: bool = false) -> bool:
+	if comp == self: return false
 	if recursive:
 		for child: RationalComponent in get_children():
 			if child.has_child(comp, recursive):

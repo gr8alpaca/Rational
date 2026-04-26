@@ -22,7 +22,9 @@ func apply_theme() -> void:
 	filter_line_edit.right_icon = Util.get_icon(&"Search")
 
 func _ready() -> void:
-	if not cache: return
+	filter_line_edit.right_icon = Util.get_icon(&"Search", &"EditorIcons")
+	
+	cache = Util.get_cache()
 	theme_changed.connect(apply_theme)
 	
 	init_popup()
@@ -208,9 +210,6 @@ func create_new_root(script_path: String) -> void:
 
 func _on_edited_tree_changed(data: RootData) -> void:
 	select_data(data)
-
-func set_cache(val: Cache) -> void:
-	cache = val
 
 #region RightClickMenu
 

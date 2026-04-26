@@ -2,18 +2,31 @@
 
 [ext_resource type="Script" uid="uid://bf5yfufeku4t4" path="res://addons/rational/components/rational_component.gd" id="1_5l7se"]
 [ext_resource type="Script" uid="uid://b084a27qrwlfn" path="res://addons/rational/components/sequence.gd" id="2_gcn5t"]
+[ext_resource type="Script" uid="uid://dq5d3qx2jtck3" path="res://addons/rational/components/decorators/inverter.gd" id="3_1br5i"]
 [ext_resource type="Script" uid="uid://dslcu3blcrgyx" path="res://addons/rational/components/decorators/succeeder.gd" id="3_gcn5t"]
 [ext_resource type="Script" uid="uid://cugqq0rl38kp7" path="res://addons/rational/components/fallback.gd" id="3_id7as"]
 [ext_resource type="Script" uid="uid://lp2l3w30rxd3" path="res://addons/rational/components/decorators/failer.gd" id="4_1br5i"]
 
-[sub_resource type="Resource" id="Resource_14gug"]
-resource_name = "Fallback"
-script = ExtResource("3_id7as")
+[sub_resource type="Resource" id="Resource_3d0at"]
+resource_name = "Succeeder"
+script = ExtResource("3_gcn5t")
+
+[sub_resource type="Resource" id="Resource_5qcio"]
+resource_name = "Inverter"
+script = ExtResource("3_1br5i")
+
+[sub_resource type="Resource" id="Resource_bmw28"]
+resource_name = "Succeeder"
+script = ExtResource("3_gcn5t")
+
+[sub_resource type="Resource" id="Resource_4xbec"]
+resource_name = "Succeeder"
+script = ExtResource("2_gcn5t")
+children = Array[ExtResource("1_5l7se")]([SubResource("Resource_3d0at"), SubResource("Resource_5qcio"), SubResource("Resource_bmw28")])
 
 [sub_resource type="Resource" id="Resource_ae1rl"]
 resource_name = "Failer"
 script = ExtResource("4_1br5i")
-children = Array[ExtResource("1_5l7se")]([SubResource("Resource_14gug")])
 
 [sub_resource type="Resource" id="Resource_gcn5t"]
 resource_name = "Failer"
@@ -27,14 +40,18 @@ script = ExtResource("3_gcn5t")
 resource_name = "Sequence"
 script = ExtResource("2_gcn5t")
 
+[sub_resource type="Resource" id="Resource_2up2k"]
+resource_name = "Succeeder"
+script = ExtResource("3_gcn5t")
+
 [sub_resource type="Resource" id="Resource_mdvq7"]
 resource_name = "Sequence"
 script = ExtResource("2_gcn5t")
-children = Array[ExtResource("1_5l7se")]([SubResource("Resource_gcn5t"), SubResource("Resource_id7as"), SubResource("Resource_5l7se")])
+children = Array[ExtResource("1_5l7se")]([SubResource("Resource_gcn5t"), SubResource("Resource_id7as"), SubResource("Resource_5l7se"), SubResource("Resource_2up2k")])
 
 [resource]
 resource_name = "Yerp"
 script = ExtResource("3_id7as")
-children = Array[ExtResource("1_5l7se")]([SubResource("Resource_ae1rl"), SubResource("Resource_mdvq7")])
+children = Array[ExtResource("1_5l7se")]([SubResource("Resource_4xbec"), SubResource("Resource_ae1rl"), SubResource("Resource_mdvq7")])
 metadata/_custom_type_script = "uid://cugqq0rl38kp7"
 metadata/_is_root = true

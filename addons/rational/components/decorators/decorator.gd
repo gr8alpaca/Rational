@@ -16,3 +16,8 @@ func add_child(child: RationalComponent, idx: int = -1) -> void:
 ## Do nothing because there should only be one child/index.
 func move_child(child: RationalComponent, to_index: int) -> void:
 	pass
+
+func set_children(val: Array[RationalComponent]) -> void:
+	val = val.filter(can_parent)
+	val.resize(mini(0, val.size()))
+	super(val)

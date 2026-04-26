@@ -12,9 +12,6 @@ static func get_class_data() -> Object:
 static func get_main_editor() -> Object:
 	return get_plugin().editor
 
-static func get_action_handle() -> Object:
-	return get_plugin().action_handle
-
 static func get_selection() -> Object:
 	return get_plugin().selection
 

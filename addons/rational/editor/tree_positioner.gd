@@ -112,11 +112,15 @@ func check_conflicts() -> void:
 func center_siblings(from: int, to: int) -> void:
 	if to - from < 1: return
 	var child_count: int = (to - from - 1)
-	var x_delta: float = (get_sibling(to).x - get_sibling(from).x) / float(child_count + 1)
+	var from_sibling:= get_sibling(from)
+	var x_delta: float = (get_sibling(to).x - from_sibling.x) / float(child_count + 1)
+	#print("Delta: %01.01f | From: %01.01f => %01.01f" % [x_delta, get_sibling(from).x, get_sibling(to).x])
 	for i: int in child_count:
-		var sibling:= get_sibling(to + i)
-		sibling.x += (x_delta * float(i + 1))
-		sibling.mod += (x_delta * float(i + 1))
+		var sibling:= get_sibling(from + i + 1)
+		#print("Moving %s | X: %01.01f => %01.01f | Mod: %01.01f => %01.01f" % [sibling.item.component.get_name(), sibling.x, sibling.x + (x_delta * float(i + 1)), 
+				#sibling.mod, sibling.mod + (x_delta * float(i + 1))])
+		sibling.x = from_sibling.x + (x_delta * float(i + 1))
+		sibling.mod = from_sibling.mod + (x_delta * float(i + 1))
 
 func calculate_final_x(accum: float = 0.0) -> void:
 	x += accum

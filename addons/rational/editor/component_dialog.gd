@@ -36,6 +36,11 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	
+	class_data = Engine.get_singleton(&"Rational").class_data
+	refresh_tree()
+	class_data.class_data_updated.connect(refresh_tree)
+	
 	tree.item_selected.connect(_on_tree_item_selected)
 	tree.item_activated.connect(_on_item_activated)
 	line_edit.text_changed.connect(_on_filter_changed)
@@ -51,19 +56,6 @@ func open(at_position: Vector2 = Vector2.ZERO, callback: Callable = Callable()) 
 	position = at_position
 	active_callback = callback
 	popup()
-
-
-#func open_position(at_position: Vector2, callback: Callable = Callable()) -> void:
-	#if visible: return
-	#position = at_position
-	#open(callback)
-
-#func open_centered(callback: Callable = Callable()) -> void:
-	#if visible: return
-	#active_callback = callback
-	#popup_centered()
-	#popup_centered_ratio()
-	
 
 func popup_at_position(at_position: Vector2) -> void:
 	popup(Rect2(at_position, size))
@@ -153,9 +145,8 @@ func _on_filter_changed(txt: String) -> void:
 		item_apply_filter(item, txt)
 
 func _on_meta_clicked(meta: Variant) -> void:
-	var meta_str: String = str(meta)
+	#var meta_str: String = str(meta)
 	hide()
-
 
 func _on_item_activated() -> void:
 	confirmed.emit()
@@ -171,8 +162,3 @@ func _on_theme_changed() -> void:
 	line_edit.right_icon = get_theme_icon(&"Search", &"EditorIcons")
 	menu_button.icon = get_theme_icon(&"Modifiers", &"EditorIcons")
 	tree.add_theme_constant_override(&"icon_max_width", 16.0 * EditorInterface.get_editor_scale())
-
-func set_cache(cache: Object) -> void:
-	class_data = Engine.get_singleton(&"Rational").class_data
-	refresh_tree()
-	class_data.class_data_updated.connect(refresh_tree)

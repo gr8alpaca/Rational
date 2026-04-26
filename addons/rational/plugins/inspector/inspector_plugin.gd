@@ -1,13 +1,7 @@
 @tool
 extends EditorInspectorPlugin
 
-const Util := preload("../../util.gd")
-const Cache:= preload("../../data/cache.gd") # TBR
-
-var cache: Cache
-
-func _init() -> void:
-	cache = Util.get_cache()
+var cache: RefCounted = Engine.get_singleton(&"Rational").cache
 
 # TODO: Only handle rational components.
 func _can_handle(object: Object) -> bool:

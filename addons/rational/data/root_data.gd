@@ -257,13 +257,9 @@ func load_deferred() -> Error:
 
 
 func mark_scene_unsaved() -> void:
-	if not is_builtin(): return
-	var scene_file:= get_scene_file()
-	assert(is_scene_open(), "Built-in %s active while scene is not." % self)
-	#root.get_local_scene()
-	
+	if not root.get_local_scene() or not root.get_local_scene().scene_file_path: return
 	var current_scene: String = EditorInterface.get_edited_scene_root().scene_file_path
-	EditorInterface.open_scene_from_path(scene_file)
+	EditorInterface.open_scene_from_path(root.get_local_scene().scene_file_path)
 	EditorInterface.mark_scene_as_unsaved()
 	EditorInterface.open_scene_from_path.call_deferred(current_scene)
 

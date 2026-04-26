@@ -2,7 +2,6 @@
 extends CharacterBody2D
 
 
-
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	const SPEED:= 300.0
@@ -13,5 +12,5 @@ func _physics_process(delta: float) -> void:
 		
 	else:
 		velocity = velocity.move_toward(Vector2.ZERO, SPEED)
-
+	
 	move_and_slide()

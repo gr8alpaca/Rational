@@ -15,7 +15,7 @@ signal child_removed(child: RationalComponent)
 func can_parent(child: RationalComponent) -> bool:
 	return child != null
 
-## Negative indexes
+## Negative indexes start from the back of [member children].
 func add_child(child: RationalComponent, idx: int = -1) -> void:
 	if not can_parent(child): return
 	

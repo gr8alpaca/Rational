@@ -285,7 +285,7 @@ func _on_component_script_changed() -> void:
 			tree_entered.connect(_on_component_script_changed, CONNECT_ONE_SHOT)
 		return
 	set_slots(component != get_parent().get_root_component(), component is Composite)
-	update_display() 
+	update_display()
 
 func _draw() -> void:
 	if is_drawing_index:

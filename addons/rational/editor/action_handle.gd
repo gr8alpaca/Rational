@@ -32,10 +32,6 @@ func init_action_handle() -> void:
 	cache.edited_tree_changed.connect(set_current_edited_object)
 	set_current_edited_object(cache.edited_tree)
 
-func open_documentation(comp: RationalComponent) -> void:
-	if not comp: return
-	EditorInterface.get_script_editor().goto_help("class_name:%s" % Engine.get_singleton(&"Rational").class_data.comp_get_class(comp))
-
 func move_child_component(parent: RationalComponent, child: RationalComponent, to_idx: int,
 			merge_mode: UndoRedo.MergeMode = UndoRedo.MERGE_ALL, execute: bool = true) -> void:
 	move_child(parent, parent.get_child_index(child), to_idx, merge_mode, execute)
@@ -71,61 +67,6 @@ func reparent_item(comp: RationalComponent, target_parent: RationalComponent = n
 	
 	commit(execute)
 
-func prompt_add_child(parent: RationalComponent) -> void:
-	if not parent is Composite: return
-	EditorInterface.popup_create_dialog(add_new_child.bind(parent), &"RationalComponent", "", "Add Child Component", [])
-
-func prompt_instantiate_child(parent: RationalComponent) -> void:
-	if not parent is Composite: return
-	# TODO
-
-func add_new_child(path: String, parent: RationalComponent) -> void:
-	if not path: return
-	add_child(parent, _instantiate_component_from_path(path))
-
-func add_child(parent: RationalComponent, child: RationalComponent, 
-			merge_mode: UndoRedo.MergeMode = UndoRedo.MERGE_ALL, execute: bool = true) -> void:
-	if not parent or not child or not parent.can_parent(child): return
-	create_action("Add Child Component", merge_mode, )
-	undo_redo.add_undo_method(parent, &"remove_child", child)
-	emit_remove(child)
-	undo_redo.add_do_method(parent, &"add_child", child)
-	commit(execute)
-
-## Only removes child from parent. Will not delete corresponding GraphNode.
-#func remove_child(parent: RationalComponent, child: RationalComponent, 
-			#merge_mode: UndoRedo.MergeMode = UndoRedo.MERGE_ALL, execute: bool = true) -> void:
-	#if not parent or not parent.has_child(child): return
-	#create_action("Unparent Component", merge_mode, )
-	#undo_redo.add_do_method(parent, &"add_child", child)
-	#undo_redo.add_undo_method(parent, &"remove_child", child)
-	#commit(execute)
-
-func paste(parent: RationalComponent, merge_mode: UndoRedo.MergeMode = UndoRedo.MERGE_ALL, execute: bool = true) -> void:
-	if not parent is Composite or not can_paste(): return
-	
-	create_action("Paste Component(s) as child of %s" % parent.get_name(), merge_mode, )
-	for child: RationalComponent in get_top_clipboard_components().duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL):
-		if not parent.can_parent(child): continue
-		undo_redo.add_undo_method(parent, &"remove_child", child)
-		emit_remove(child)
-		undo_redo.add_do_method(parent, &"add_child", child)
-	
-	commit(execute)
-
-func paste_as_sibling(parent: RationalComponent, sibling: RationalComponent, 
-			merge_mode: UndoRedo.MergeMode = UndoRedo.MERGE_ALL, execute: bool = true) -> void:
-	create_action("Paste Component(s) as sibling of %s" % sibling.get_name(), merge_mode, )
-	if not parent or not sibling: return
-	
-	for child: RationalComponent in get_top_clipboard_components().duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL):
-		if not parent.can_parent(child): continue
-		undo_redo.add_undo_method(parent, &"remove_child", child)
-		emit_remove(child)
-		undo_redo.add_do_method(parent, &"add_child", child)
-	
-	commit(execute)
-
 ## Only prompts to change type. 
 func change_type(comp: RationalComponent) -> void:
 	if not comp: return
@@ -146,70 +87,10 @@ func rename(comp: RationalComponent, to_name: String) -> void:
 	undo_redo.add_undo_property(comp, &"resource_name", comp.resource_name)
 	commit()
 
-func delete() -> void:
-	if not get_edited_tree_root() or get_selected_components().is_empty(): return
-	var root: RationalComponent = get_edited_tree_root()
-	for comp: RationalComponent in get_selected_components():
-		create_action("Remove Component(s)")
-		undo_redo_remove(comp, root.find_parent(comp))
-		commit()
-
-func cut() -> void:
-	copy()
-	if not get_edited_tree_root() or get_selected_components().is_empty(): return
-	var root: RationalComponent = get_edited_tree_root()
-	#print("Cutting | Root: %s" % root)
-	for comp: RationalComponent in get_selected_components():
-		var parent: RationalComponent = root.find_parent(comp)
-		print("Cutting Comp: %s | Parent: %s" % [comp, parent])
-		create_action("Cut Component(s)")
-		undo_redo_remove(comp, parent)
-		commit()
-
 
 func copy() -> void:
+	
 	set_clipboard(selection.get_selected_components())
-
-func duplicate() -> void:
-	if not get_edited_tree_root(): return
-	
-	var selected:= get_selected_components()
-	var root: RationalComponent = get_edited_tree_root()
-	
-	for comp: RationalComponent in get_top_selected_components():
-		var new_comp: RationalComponent = filter_unselected(comp, comp.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL), selected)
-		create_action("Duplicate Component(s)")
-		undo_redo_add(new_comp, root.find_parent(comp))
-		
-		commit()
-
-## Adds [member undo_redo] methods for adding a new component to the editor.
-func undo_redo_add(comp: RationalComponent, parent: RationalComponent = null, ) -> void:
-	emit_add(comp)
-	
-	undo_redo.add_undo_method(selection, &"remove_component", comp)
-	
-	if parent:
-		undo_redo.add_undo_method(parent, &"remove_child", comp)
-		undo_redo.add_do_method(parent, &"add_child", comp)
-	
-	undo_redo.add_do_method(selection, &"add_component", comp)
-
-
-## Adds [member undo_redo] methods for removing a component from the tree entirely.
-func undo_redo_remove(comp: RationalComponent, parent: RationalComponent = null) -> void:
-	emit_remove(comp)
-	
-	undo_redo.add_undo_method(selection, &"add_component", comp)
-	
-	if parent:
-		undo_redo.add_undo_method(parent, &"add_child", comp)
-	
-	undo_redo.add_do_method(selection, &"remove_component", comp)
-	
-	if parent:
-		undo_redo.add_do_method(parent, &"remove_child", comp)
-
 
 func get_edited_tree_root() -> RationalComponent:
 	return cache.get_edited_comp()
@@ -218,7 +99,7 @@ func is_component_selected(comp: RationalComponent) -> void:
 	return selection.is_selected(comp)
 
 func get_selected_components() -> Array[RationalComponent]:
-	return selection.get_selected_components().duplicate()
+	return selection.get_selected_components()
 
 ## Array already duplicated (but not the resources themselves).
 func get_top_selected_components() -> Array[RationalComponent]:
@@ -276,14 +157,6 @@ func filter_child_components(input_components: Array[RationalComponent], duplica
 			components.remove_at(i)
 			break
 	return components
-
-## Emits signal for GraphEdit to add this component as an orphan.
-func emit_add(comp: RationalComponent) -> void:
-	add_component.emit(comp)
-
-## Emits signal for GraphEdit to add_methods to remove this component entirely.
-func emit_remove(comp: RationalComponent) -> void:
-	remove_component.emit(comp)
 
 ## Internal Use.
 func _instantiate_component_from_path(path: String) -> RationalComponent:

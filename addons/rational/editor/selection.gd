@@ -2,8 +2,7 @@
 extends RefCounted
 ## Manages selected items for the Rational editor.
 
-## NOTE: This is always emitted deferred.
-signal selection_changed
+signal selected_component(component: RationalComponent, selected: bool)
 
 var cache: RefCounted
 var _changed_signal_queued: bool = false
@@ -19,24 +18,25 @@ func _init_selection() -> void:
 func add_component(component: RationalComponent) -> void:
 	if not component or is_selected(component): return
 	_get_selected().push_back(component)
-	emit_changed()
+	selected_component.emit(component, true)
 
 func remove_component(component: RationalComponent) -> void:
 	if not component or not is_selected(component): return
 	_get_selected().erase(component)
-	emit_changed()
+	selected_component.emit(component, false)
 
 func clear() -> void:
 	if _get_selected().is_empty(): return
+	var deselected_components: Array[RationalComponent] = get_selected_components()
 	_get_selected().clear()
-	emit_changed()
+	for component: RationalComponent in deselected_components:
+		selected_component.emit(component, false)
 
 func is_selected(component: RationalComponent) -> bool:
 	return component in _get_selected()
 
-func set_selected(components: Array[RationalComponent]) -> void:
-	_get_selected().assign(components)
-	emit_changed()
+func get_selection_count() -> int:
+	return _get_selected().size()
 
 func _get_selected() -> Array[RationalComponent]:
 	if not _get_key() in _data:
@@ -44,7 +44,7 @@ func _get_selected() -> Array[RationalComponent]:
 		_data[_get_key()] = arr
 	return _data[_get_key()]
 
-## Edits cannot be made directly to the array.
+## Returns a duplicated array of selected components.
 func get_selected_components() -> Array[RationalComponent]:
 	return _get_selected().duplicate()
 
@@ -59,16 +59,6 @@ func get_top_selected_components() -> Array[RationalComponent]:
 			components.remove_at(i)
 			break
 	return components
-
-## Queues [member selection_changed] to be emitted on the next frame. Multiple calls to this are safe.
-func emit_changed() -> void:
-	if _changed_signal_queued: return
-	_changed_signal_queued = true
-	_update.call_deferred()
-
-func _update() -> void:
-	selection_changed.emit()
-	_changed_signal_queued = false
 
 func _get_key() -> RootData:
 	return cache.get_edited_tree()

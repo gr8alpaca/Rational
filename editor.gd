@@ -32,7 +32,6 @@ const RootFileList := preload("res://addons/rational/editor/root_file_list.gd")
 const TreeDisplay := preload("res://addons/rational/editor/tree_display.gd")
 const GraphEditor := preload("res://addons/rational/editor/graph_edit.gd")
 const Settings := preload("res://addons/rational/settings.gd")
-const ActionHandle := preload("res://addons/rational/editor/action_handle.gd")
 const RationalGraphNode = preload("uid://vsth43p1vl5f")
 const GraphState = preload("uid://bft33tkdb5bm1")
 
@@ -49,7 +48,6 @@ func _run() -> void:
 	var cache: Cache = plugin.cache
 	var class_data: ClassData = plugin.class_data
 	var selection: Selection = plugin.selection
-	var action_handle: ActionHandle = plugin.action_handle
 	
 	var main: Main = plugin.editor
 	var root_file_tree: RootFileList = main.root_file_tree
@@ -57,44 +55,11 @@ func _run() -> void:
 	var graph_edit: GraphEditor = main.graph_edit
 	var test_root: Composite = load("uid://dbllgp7c366kf")
 	
-	const PATH := "res://TestScene/test_scene_character.tscn::Resource_4t32f"
-	const PATH2 := "res://TestScene/test_scene_character.tscn::Resource_q1v5c"
-	const SAVE_PATH: String = "res://bar.tres"
-	
-
-func print_selection() -> void:
-	var data: Dictionary = Engine.get_singleton(&"Rational").selection._data
-	for key in data:
-		print("- -%s- -" % key)
-		for comp in data[key].selection:
-			print("\t%s" % comp)
+	const PATH := "res://TestScene/test_scene_character.tscn::Resource_q1v5c"
+	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	
 
 
-func get_all_components() -> Array[RationalComponent]:
-	var result: Array[RationalComponent]
-	
-	var fs: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()
-	#for
-	return result
-
-func get_component_paths_in_dir(dir: EditorFileSystemDirectory = EditorInterface.get_resource_filesystem().get_filesystem()) -> PackedStringArray:
-	var result: PackedStringArray
-	var dependency_string: String = "%s::::%s" % [ResourceUID.path_to_uid(RATIONAL_SCRIPT_PATH), RATIONAL_SCRIPT_PATH]
-	for i: int in dir.get_file_count():
-		if dir.get_file_type(i) == &"Resource":
-			var file_path: String = dir.get_path().path_join(dir.get_file(i))
-			#var dependencies:= ResourceLoader.get_dependencies(file_path)
-			#if dependency_string in dependencies:
-			#if load()
-				#result.push_back(file_path)
-			#else:
-			
-				
-	
-	for j: int in dir.get_subdir_count():
-		result.append_array(get_component_paths_in_dir(dir.get_subdir(j)))
-	return result
 
 func get_property(name: StringName) -> Dictionary:
 	for dict in get_property_list():

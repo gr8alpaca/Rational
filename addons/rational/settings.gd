@@ -2,7 +2,7 @@
 @tool
 extends RefCounted
 
-const CATEGORY: String = "rational/%s"
+const CATEGORY: String = "rational/config/%s"
 
 const DATA: Dictionary[StringName, Dictionary] = {
 	autosave = {

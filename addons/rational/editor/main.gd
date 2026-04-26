@@ -26,8 +26,6 @@ var cache: Cache
 var edited_tree: RootData:
 	get: return cache.edited_tree if cache else null
 
-#var root_to_be_saved: RootData
-
 func _init() -> void:
 	file_dialog = EditorFileDialog.new()
 	file_dialog.title = "Save Rational Component"
@@ -38,18 +36,18 @@ func _init() -> void:
 	
 	file_dialog.canceled.connect(_on_file_dialog_canceled, CONNECT_DEFERRED)
 
+	cache = Util.get_cache()
+	cache.request_save_as.connect(save_as)
 
 func _ready() -> void:
 	panel_collapse_button.pressed.connect(_on_panel_collapse_pressed)
 	init_shortcuts()
 
-func set_cache(_cache: Cache) -> void:
-	cache = _cache
-	cache.edited_tree_changed.connect(_on_edited_tree_changed)
-	cache.request_save_as.connect(save_as)
+func get_window_layout(configuration: ConfigFile) -> void:
+	configuration.set_value("Rational", "window_floating", "Ghost")
 
-func _on_edited_tree_changed(data: RootData) -> void:
-	graph_edit.set_active_root(data)
+func set_window_layout(configuration: ConfigFile) -> void:
+	pass
 
 func save_as(data: RootData) -> void:
 	if not data: return
@@ -141,10 +139,9 @@ func apply_theme() -> void:
 		style_box.set_content_margin_all(0)
 		collapse_panel_container.add_theme_stylebox_override(&"panel", style_box)
 	
-	
 	make_floating_button.icon = get_theme_icon(&"MakeFloating", &"EditorIcons")
 	var icon_width: int = make_floating_button.icon.get_width()
-
+	
 	
 	%RootListFilter.right_icon = get_theme_icon(&"Search", &"EditorIcons")
 	%TreeFilter.right_icon = %RootListFilter.right_icon

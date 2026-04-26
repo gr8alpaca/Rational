@@ -49,7 +49,6 @@ func _ready() -> void:
 		main.make_floating_button.pressed.connect(open_window)
 		add_child(main)
 
-
 func open_window() -> void:
 	main.reparent(main_window_parent, false)
 	EditorInterface.set_main_screen_editor("2D")
@@ -61,7 +60,7 @@ func close_window() -> void:
 	main.reparent(self, false)
 	main.make_floating_button.show()
 
-
+# Used by plugin.
 func make_visible(is_visible: bool) -> void:
 	if window.visible:
 		window.grab_focus()
@@ -71,3 +70,15 @@ func make_visible(is_visible: bool) -> void:
 	
 	if visible:
 		EditorInterface.set_main_screen_editor("Rational")
+
+func get_window_layout(configuration: ConfigFile) -> void:
+	configuration.set_value("Rational", "floating_window_rect", Rect2i(window.position, window.size))
+
+func set_window_layout(configuration: ConfigFile) -> void:
+	if configuration.get_value("Rational", "floating_window_rect") is Rect2i:
+		set_window_rect(configuration.get_value("Rational", "floating_window_rect", Rect2i()))
+
+func set_window_rect(rect: Rect2i) -> void:
+	if not rect: return
+	window.position = rect.position
+	window.size = rect.size

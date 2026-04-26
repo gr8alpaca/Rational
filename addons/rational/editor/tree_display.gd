@@ -2,42 +2,37 @@
 extends Tree
 
 const Util := preload("res://addons/rational/util.gd")
-const Cache:= preload("../data/cache.gd")
 
 const Selection:= preload("selection.gd")
 
 const Menu := preload("popup_menu.gd")
-const ActionHandle := preload("action_handle.gd")
 
-const META_VISIBLE: StringName = &"Visible"
+const META_VISIBLE: StringName = &"visible"
 
 const COLOR_HIDDEN: Color = Color.DIM_GRAY
 const COLOR_VISIBLE: Color = Color.WHITE
 
 signal menu_item_selected(menu_item: int)
-signal request_reparent()
-
-##
-signal selected_items_changed(items: Array[RationalComponent])
+signal request_reparent(comp: RationalComponent,  current_parent: RationalComponent, target_parent: RationalComponent, index: int)
 
 @export var tree_filter_line_edit: LineEdit
 
+var selection: Selection = Util.get_selection()
 var menu: Menu
 
 var active_root: RootData: set = set_active_root
 
-var cache: Cache
-
-var selection: Selection
-var action_handle: ActionHandle
 var deselect_queued: bool = false
 
+# Keeping reference for menu options potentially.
+var clipboard: Array[RationalComponent]
+
 func _ready() -> void:
-	selection = Util.get_selection()
-	selection.selection_changed.connect(_on_selection_changed)
-	
-	action_handle = Util.get_action_handle()
-	
+	tree_filter_line_edit.right_icon = Util.get_icon(&"Search", &"EditorIcons")
+	Util.get_cache().edited_tree_changed.connect(edit_tree)
+	selection
+	selection.selected_component.connect(_on_selected_component)
+
 	item_mouse_selected.connect(_on_item_mouse_selected)
 	multi_selected.connect(_on_multi_selected)
 	button_clicked.connect(_on_button_clicked)
@@ -52,19 +47,22 @@ func _ready() -> void:
 func show_popup(at_position: Vector2) -> void:
 	menu.popup_at(get_menu_options(), get_screen_position() + at_position)
 
+func can_paste() -> bool:
+	return not clipboard.is_empty()
+
 func _on_menu_id_pressed(id: int) -> void:
-	match id:
-		Menu.ITEM_RENAME:
-			rename()
-		_:
-			menu_item_selected.emit(id, item_get_comp(get_item_at_position(Vector2(menu.position) - get_screen_position())))
+	if id == Menu.ITEM_RENAME:
+		rename()
+		return
+	
+	menu_item_selected.emit(id, item_get_comp(get_selected()))
 
 
 func get_menu_options() -> int:
-	var comps:= get_selected_components()
+	var comps:= selection.get_selected_components()
 	
 	var options: int = Menu.ITEMS_DEFAULT | Menu.ITEM_SHOW_IN_EDITOR | \
-			((Menu.ITEM_PASTE_AS_SIBLING | Menu.ITEM_PASTE) * int(action_handle.has_clipboard()))
+			((Menu.ITEM_PASTE_AS_SIBLING | Menu.ITEM_PASTE) * int(can_paste()))
 	
 	if active_root.root in comps:
 		options &= ~(Menu.ITEM_REPARENT | Menu.ITEM_PASTE_AS_SIBLING | Menu.ITEM_CUT)
@@ -102,13 +100,14 @@ func set_active_root(data: RootData) -> void:
 	
 	if active_root:
 		active_root.tree_changed.connect(_on_root_tree_changed)
-	
-	_on_selection_changed()
+
 
 func _on_root_tree_changed() -> void:
 	populate_tree()
 
 func populate_tree() -> void:
+	var selected_comp: RationalComponent = get_selected().get_metadata(0) if get_selected() else null
+	
 	clear()
 	if not active_root: 
 		return
@@ -118,11 +117,17 @@ func populate_tree() -> void:
 		return
 	
 	add_component(active_root.root)
-	filter_items(tree_filter_line_edit.text if tree_filter_line_edit else "")
-	set_selected_components.call_deferred(selection.get_selected_components())
+	
+	sync_selection()
+	
+	var item: TreeItem = comp_get_item(selected_comp)
+	if item:
+		set_selected(item, 0)
+		ensure_cursor_is_visible()
+	
 
 
-func add_component(comp: RationalComponent, parent: TreeItem = null, recursive: bool = true) -> void:
+func add_component(comp: RationalComponent, parent: TreeItem = null) -> void:
 	if not comp: return
 	var item: TreeItem = create_item(parent)
 	item.set_metadata(0, comp)
@@ -138,9 +143,6 @@ func add_component(comp: RationalComponent, parent: TreeItem = null, recursive: 
 	comp.script_changed.connect(item.emit_signal.bind(SIGNAL_NAME))
 	item.connect(SIGNAL_NAME, _on_item_changed, CONNECT_APPEND_SOURCE_OBJECT)
 	
-	if not recursive:
-		return
-	
 	for child: RationalComponent in comp.get_children():
 		if not child: continue
 		add_component(child, item)
@@ -149,22 +151,18 @@ func item_apply_filter(item: TreeItem, filter_text: String) -> bool:
 	var any_child_visible: bool = false
 	for child: TreeItem in item.get_children():
 		any_child_visible = item_apply_filter(child, filter_text) or any_child_visible
-	item.visible = any_child_visible or item_get_name(item).containsn(filter_text)
+	item.visible = any_child_visible or item.get_text(0).containsn(filter_text)
 	if item.visible:
 		item.uncollapse_tree()
 	return item.visible
 
 func filter_items(text: String) -> void:
-	
 	if not text:
 		get_root().call_recursive("set_visible", true)
 		return
 	
 	item_apply_filter(get_root(), text)
 
-
-func item_get_name(item: TreeItem) -> String:
-	return item.get_text(0)
 
 func item_get_comp(item: TreeItem) -> RationalComponent:
 	return item.get_metadata(0) if item else null
@@ -211,19 +209,13 @@ func _on_filter_text_changed(new_text: String) -> void:
 	filter_items(new_text)
 
 func _on_item_changed(item: TreeItem) -> void:
-	if item.get_text(0) != item.get_metadata(0).resource_name:
-		item.set_text(0, generate_unique_name(item))
-
+	item.set_text(0, item.get_metadata(0).resource_name)
 
 func _on_button_clicked(item: TreeItem, column: int, id: int, mouse_button_index: int) -> void:
 	item_set_visible(item, item.get_button(column,id) == get_theme_icon(&"GuiVisibilityHidden", &"EditorIcons"))
 
 func get_visible_icon(item_visible: bool) -> Texture2D:
 	return get_theme_icon(&"GuiVisibilityVisible", &"EditorIcons") if item_visible else get_theme_icon(&"GuiVisibilityHidden", &"EditorIcons")
-
-func set_cache(val: Cache) -> void:
-	cache = val
-	cache.edited_tree_changed.connect(edit_tree)
 
 func get_all_selected_items() -> Array[TreeItem]:
 	var selected_items: Array[TreeItem]
@@ -233,16 +225,24 @@ func get_all_selected_items() -> Array[TreeItem]:
 		item = get_next_selected(item)
 	return selected_items
 
-func get_selected_components() -> Array[RationalComponent]:
-	return selection.get_selected_components()
 
-func set_selected_components(components: Array[RationalComponent]) -> void:
+func sync_selection() -> void:
 	for item: TreeItem in get_all_items():
-		item_set_selected(item, item_get_comp(item) in components)
+		item_set_selected(item, selection.is_selected(item.get_metadata(0)))
 
+func comp_get_item(comp: RationalComponent) -> TreeItem:
+	if not comp: return null
+	var item: TreeItem = get_root()
+	while item:
+		if item.get_metadata(0) == comp:
+			return item
+		item = item.get_next_in_tree(false)
+	return null
 
 ## Sets item selected = [param selected] and uncollapses tree if selected. 
 func item_set_selected(item: TreeItem, selected: bool) -> void:
+	if not item or item.is_selected(0) == selected: return
+	
 	if not selected:
 		item.deselect(0)
 		return
@@ -336,25 +336,24 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 		button.icon = i.get_icon(0)
 		button.modulate.a = 0.65
 		vbox.add_child(button)
+	
 	set_drag_preview(vbox)
+	
 	return {type = "items", items = selected_items, source = self}
 
 #endregion 
-
 
 func _on_item_mouse_selected(mouse_position: Vector2, mouse_button_index: int) -> void:
 	if mouse_button_index == MOUSE_BUTTON_RIGHT:
 		show_popup(mouse_position)
 
-	
-
-func _on_selection_changed() -> void:
-	set_selected_components(selection.get_selected_components())
+func _on_selected_component(comp: RationalComponent, selected: bool) -> void:
+	item_set_selected(comp_get_item(comp), selected)
 
 func _on_multi_selected(item: TreeItem, column: int, selected: bool) -> void:
 	if not deselect_queued:
 		deselect_queued = true
-		update_selection.call_deferred()
+		deselect_orphan_components.call_deferred()
 	
 	if selected:
 		selection.add_component(item_get_comp(item))
@@ -362,12 +361,12 @@ func _on_multi_selected(item: TreeItem, column: int, selected: bool) -> void:
 	
 	selection.remove_component(item_get_comp(item))
 
-func update_selection() -> void:
-	if not deselect_queued: return
-	var selected_item_components: Array[RationalComponent]
-	selected_item_components.assign(get_all_selected_items().map(item_get_comp))
+## Removes all selected components not child to the root.
+func deselect_orphan_components() -> void:
+	if not active_root: return
+	var tree_components: Array[RationalComponent] = active_root.root.get_children(true)
+	tree_components.push_back(active_root.root)
 	for comp: RationalComponent in selection.get_selected_components():
-		if comp in selected_item_components: continue
+		if comp in tree_components: continue
 		selection.remove_component(comp)
-	#selection.set_selected(selected_item_components)
 	deselect_queued = false

@@ -16,6 +16,17 @@ content_margin_bottom = 0.0
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#ff5d5d\" d=\"M2 1v8.586l1.293-1.293a1 1 0 0 1 1.414 0L7 10.587l2.293-2.293a1 1 0 0 1 1.414 0L13 10.586l1-1V6H9V1H2zm8 0v4h4zm-6 9.414-2 2V15h12v-2.586l-.293.293a1 1 0 0 1-1.414 0L10 10.414l-2.293 2.293a1 1 0 0 1-1.414 0L4 10.414z\"/></svg>
 "
 
+[sub_resource type="DPITexture" id="DPITexture_gplcq"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M10.168 8.754a5 5 0 1 0-1.414 1.414l4.316 4.316 1.414-1.414zM6 3a3 3 0 0 1 0 6 3 3 0 0 1 0-6z\"/></svg>
+"
+base_scale = 1.5
+saturation = 2.0
+color_map = {
+Color(1, 0.37254903, 0.37254903, 1): Color(1, 0.47, 0.42, 1),
+Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
+Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
+}
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hsmtw"]
 content_margin_left = 0.0
 content_margin_top = 0.0
@@ -87,8 +98,8 @@ icon_alignment = 1
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 0
-split_offsets = PackedInt32Array(34)
-split_offset = 34
+split_offsets = PackedInt32Array(82)
+split_offset = 82
 
 [node name="VSplitTreePanel" type="VSplitContainer" parent="MainVBox/main" unique_id=336033645]
 layout_mode = 2
@@ -107,7 +118,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Filter Roots"
 clear_button_enabled = true
-right_icon = SubResource("DPITexture_hsmtw")
+right_icon = SubResource("DPITexture_gplcq")
 
 [node name="RootList" type="Tree" parent="MainVBox/main/VSplitTreePanel/VBoxRootFileTree" unique_id=689164486 node_paths=PackedStringArray("filter_line_edit", "add_root_button", "popup")]
 custom_minimum_size = Vector2(128, 100)
@@ -134,15 +145,27 @@ popup = NodePath("PopupMenu")
 [node name="PopupMenu" type="PopupMenu" parent="MainVBox/main/VSplitTreePanel/VBoxRootFileTree/RootList" unique_id=437500302]
 oversampling_override = 1.0
 size = Vector2i(112, 100)
-item_count = 4
+item_count = 10
 item_0/text = "Save"
-item_0/id = 1
+item_0/id = 0
 item_1/text = "Save As..."
 item_1/id = 1
+item_2/text = "Rename"
 item_2/id = 2
-item_2/separator = true
-item_3/text = "Delete"
+item_3/text = "Close"
 item_3/id = 3
+item_4/text = "Close Others"
+item_4/id = 4
+item_5/text = "Close Below"
+item_5/id = 5
+item_6/text = "Close All"
+item_6/id = 6
+item_7/id = -1
+item_7/separator = true
+item_8/text = "Show in FileSystem"
+item_8/id = 8
+item_9/text = "Change Path..."
+item_9/id = 9
 
 [node name="VBoxTreeDisplay" type="VBoxContainer" parent="MainVBox/main/VSplitTreePanel" unique_id=1106035553]
 layout_mode = 2
@@ -168,8 +191,8 @@ theme_override_constants/button_margin = 0
 theme_override_constants/icon_max_width = 16
 theme_override_constants/draw_guides = 0
 theme_override_constants/draw_relationship_lines = 1
-allow_rmb_select = true
 select_mode = 2
+auto_tooltip = false
 script = ExtResource("4_0erff")
 tree_filter_line_edit = NodePath("../TreeFilter")
 
@@ -179,6 +202,50 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
 snapping_enabled = false
+connection_lines_thickness = 7.0
+connections = Array[Dictionary]([{
+"from_node": &"-9223370294188500030",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223370294272386115",
+"to_port": 0
+}, {
+"from_node": &"-9223370294205277247",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223370294255608898",
+"to_port": 0
+}, {
+"from_node": &"-9223370294205277247",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223370294238831681",
+"to_port": 0
+}, {
+"from_node": &"-9223370294205277247",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223370294222054464",
+"to_port": 0
+}, {
+"from_node": &"-9223370294188500030",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223370294205277247",
+"to_port": 0
+}, {
+"from_node": &"-9223360177241963929",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223360177225247986",
+"to_port": 0
+}, {
+"from_node": &"-9223360177258812330",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223360177241963929",
+"to_port": 0
+}])
 show_arrange_button = false
 script = ExtResource("5_hsmtw")
 popup = NodePath("CreatePopup")

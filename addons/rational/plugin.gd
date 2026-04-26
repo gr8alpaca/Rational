@@ -2,34 +2,31 @@
 extends EditorPlugin
 
 const Util := preload("util.gd")
+const Settings := preload("settings.gd")
+
+const InpsectorPlugin := preload("plugins/inspector/inspector_plugin.gd")
+
 const Cache := preload("data/cache.gd")
 const ClassData := preload("data/rational_class_data.gd")
-
-const Settings := preload("settings.gd")
+const Selection := preload("editor/selection.gd")
 
 const WindowWrapper := preload("editor/window_wrapper.gd")
 const Editor := preload("editor/main.gd")
-
-const InpsectorPlugin := preload("plugins/inspector/inspector_plugin.gd")
-const ActionHandle := preload("editor/action_handle.gd")
-
-const Selection := preload("editor/selection.gd")
 
 var inspector_plugin: InpsectorPlugin
 
 var cache: Cache
 var class_data: ClassData
-
 var selection: Selection
-var action_handle: ActionHandle
 
 var window_wrapper: WindowWrapper
 var editor: Editor
 
+# TODO - EditorResourceConversionPlugin ?
 
 func _enter_tree() -> void:
 	resource_saved.connect(_on_resource_saved)
-	scene_saved.connect(_on_scene_saved)
+	#scene_saved.connect(_on_scene_saved)
 	get_script_create_dialog().script_created.connect(_on_script_created)
 	
 	Settings.populate()
@@ -41,13 +38,10 @@ func _enter_tree() -> void:
 	class_data = ClassData.new()
 	
 	selection = Selection.new()
-	action_handle = ActionHandle.new()
 	
 	window_wrapper = WindowWrapper.new()
 	
 	editor = preload("editor/main.tscn").instantiate()
-	Engine.set_meta(&"Main", editor)
-	editor.propagate_call(&"set_cache", [cache])
 	
 	EditorInterface.get_editor_main_screen().add_child(window_wrapper)
 	
@@ -62,14 +56,9 @@ func _exit_tree() -> void:
 	
 	remove_inspector_plugin(inspector_plugin)
 	inspector_plugin = null
-	
 	cache = null
 	class_data = null
-	
 	selection = null
-	action_handle = null
-	
-	Engine.set_meta(&"Main", null)
 	
 	Engine.unregister_singleton(&"Rational")
 
@@ -95,17 +84,29 @@ func _get_plugin_icon() -> Texture2D:
 func _get_plugin_name() -> String:
 	return "Rational"
 
-func _on_scene_saved(filepath: String) -> void:
-	print_rich("Scene saved: [color=yellow]%s[/color] " % [filepath])
-
 func _save_external_data() -> void:
 	cache.save()
 
 func _get_unsaved_status(for_scene: String) -> String:
 	return cache.get_unsaved_status(for_scene) if cache else ""
 
+func _apply_changes() -> void:
+	#print("Apply Changes...")
+	pass
+
+func _get_window_layout(configuration: ConfigFile) -> void:
+	window_wrapper.get_window_layout(configuration)
+	#print("Get Window Layout")
+
+func _set_window_layout(configuration: ConfigFile) -> void:
+	window_wrapper.set_window_layout(configuration)
+	#print("Set Window Layout")
+
+
 #region Signal Methods 
 
+#func _on_scene_saved(filepath: String) -> void:
+	#print_rich("Scene saved: [color=yellow]%s[/color] " % [filepath])
 
 func _on_file_moved(old_file: String, new_file: String) -> void:
 	cache.update_path(old_file, new_file)
