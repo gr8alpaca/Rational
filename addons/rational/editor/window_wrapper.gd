@@ -24,6 +24,7 @@ func _init() -> void:
 	window.wrap_controls = true
 	window.min_size = Vector2i(600, 350)
 	window.transient = true
+	add_child(window)
 	
 	var panel: Panel = Panel.new()
 	panel.add_theme_stylebox_override(&"panel", EditorInterface.get_editor_theme().get_stylebox(&"PanelForeground", &"EditorStyles"))
@@ -32,10 +33,10 @@ func _init() -> void:
 	main_window_parent= MarginContainer.new()
 	main_window_parent.theme_type_variation = &"MarginContainer4px"
 	main_window_parent.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panel.add_child(main_window_parent)
+	panel.add_child(main_window_parent,)
 	
 	window.add_child(panel)
-	add_child(window)
+	
 	
 	window.close_requested.connect(close_window)
 
@@ -43,11 +44,9 @@ func _init() -> void:
 func _ready() -> void:
 	window.size = size
 	window.position = get_screen_position()
-	
-	if Engine.has_singleton(&"Rational"):
-		main = Engine.get_singleton(&"Rational").editor
-		main.make_floating_button.pressed.connect(open_window)
-		add_child(main)
+	main = Engine.get_singleton(&"Rational").editor
+	main.make_floating_button.pressed.connect(open_window)
+	add_child(main)
 
 func open_window() -> void:
 	main.reparent(main_window_parent, false)
@@ -59,6 +58,7 @@ func close_window() -> void:
 	window.hide()
 	main.reparent(self, false)
 	main.make_floating_button.show()
+	set_window_rect.call_deferred(Rect2i(get_screen_position(), size))
 
 # Used by plugin.
 func make_visible(is_visible: bool) -> void:

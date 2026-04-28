@@ -21,10 +21,7 @@ var toggle_panel_shortcut: Shortcut
 
 var shortcuts: Dictionary[Shortcut, Callable]
 
-var cache: Cache
-
-var edited_tree: RootData:
-	get: return cache.edited_tree if cache else null
+var cache: Cache = Util.get_cache()
 
 func _init() -> void:
 	file_dialog = EditorFileDialog.new()
@@ -35,19 +32,12 @@ func _init() -> void:
 	add_child(file_dialog)
 	
 	file_dialog.canceled.connect(_on_file_dialog_canceled, CONNECT_DEFERRED)
-
-	cache = Util.get_cache()
+	
 	cache.request_save_as.connect(save_as)
 
 func _ready() -> void:
 	panel_collapse_button.pressed.connect(_on_panel_collapse_pressed)
 	init_shortcuts()
-
-func get_window_layout(configuration: ConfigFile) -> void:
-	configuration.set_value("Rational", "window_floating", "Ghost")
-
-func set_window_layout(configuration: ConfigFile) -> void:
-	pass
 
 func save_as(data: RootData) -> void:
 	if not data: return
@@ -101,11 +91,11 @@ func edit_root(root: RationalComponent) -> void:
 func init_shortcuts() -> void:
 	var editor_settings:= EditorInterface.get_editor_settings()
 	
-	var file_panel_shortcut: Shortcut = Util.get_shortcut("toggle_files_panel")
+	var file_panel_shortcut: Shortcut = Util.get_shortcut(&"toggle_files_panel")
 	panel_collapse_button.tooltip_text = "Toggle panel" + (" (%s)" % file_panel_shortcut.get_as_text() if file_panel_shortcut else "")
 	shortcuts[file_panel_shortcut] = toggle_file_panel
 	
-	var float_shortcut: Shortcut = Util.get_shortcut("make_floating")
+	var float_shortcut: Shortcut = Util.get_shortcut(&"make_floating")
 	shortcuts[float_shortcut] = make_floating_button.set_pressed.bind(true)
 	make_floating_button.tooltip_text = "Make the Rational tree editor floating. " + (" (%s)" % float_shortcut.get_as_text() if float_shortcut else "")
 	

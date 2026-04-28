@@ -88,7 +88,7 @@ func _save_external_data() -> void:
 	cache.save()
 
 func _get_unsaved_status(for_scene: String) -> String:
-	return cache.get_unsaved_status(for_scene) if cache else ""
+	return cache.get_unsaved_status(for_scene)
 
 func _apply_changes() -> void:
 	#print("Apply Changes...")
@@ -96,11 +96,9 @@ func _apply_changes() -> void:
 
 func _get_window_layout(configuration: ConfigFile) -> void:
 	window_wrapper.get_window_layout(configuration)
-	#print("Get Window Layout")
 
 func _set_window_layout(configuration: ConfigFile) -> void:
 	window_wrapper.set_window_layout(configuration)
-	#print("Set Window Layout")
 
 
 #region Signal Methods 

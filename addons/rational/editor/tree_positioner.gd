@@ -74,7 +74,6 @@ func init_lateral() -> void:
 func get_children_center() -> float:
 	return (children[0].x + (children[-1].x - children[0].x) * 0.5) if has_children() else 0.0
 
-
 func find_left_bound(accum: float = 0.0, dict: Dictionary[int, float] = {}) -> Dictionary:
 	dict[level] = minf(dict.get(level, x + accum), x + accum)
 	accum += mod

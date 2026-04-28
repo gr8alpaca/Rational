@@ -5,6 +5,8 @@ const Util := preload("../util.gd")
 
 const Cache := preload("../data/cache.gd")
 
+signal request_toggle_files_panel
+
 @export var filter_line_edit: LineEdit
 
 @export var add_root_button: Button
@@ -105,7 +107,6 @@ func close_data(data: RootData) -> void:
 	if not data: return
 	data.closed.emit() 
 
-
 func add_data(data: RootData) -> void:
 	if has_data(data): return
 	var item: TreeItem = create_item()
@@ -197,8 +198,7 @@ func _on_add_root_button_pressed() -> void:
 	prompt_new_root()
 
 func prompt_new_root(for_tree: RationalTree = null) -> void:
-	EditorInterface.popup_create_dialog(create_new_root, &"RationalComponent", "", 
-			"Change Component Type", [])
+	EditorInterface.popup_create_dialog(create_new_root, &"RationalComponent", "", "Change Component Type", [])
 
 ## Creates a new root RationalComponent.
 func create_new_root(script_path: String) -> void:
@@ -254,15 +254,20 @@ func init_popup() -> void:
 	popup.clear()
 	Util.add_menu_item(popup, "Save", &"", &"save", save_selected)
 	Util.add_menu_item(popup, "Save As...", &"", &"save_as", save_selected_as)
-	
 	Util.add_menu_item(popup, "Rename", &"", &"rename", rename)
 	Util.add_menu_item(popup, "Close", &"", &"close", close_selected)
 	Util.add_menu_item(popup, "Close Others", &"", &"close_others", close_unselected) 
 	Util.add_menu_item(popup, "Close Below", &"", &"close_below", close_below_selected) 
-	Util.add_menu_item(popup, "Close All", &"", &"close_all", close_below_selected) 
+	Util.add_menu_item(popup, "Close All", &"", &"close_all", close_all)
 	popup.add_separator("")
+	Util.add_menu_item(popup, "Copy Path", &"", &"copy_path", copy_path)
+	Util.add_menu_item(popup, "Copy UID", &"", &"copy_uid", copy_uid)
 	Util.add_menu_item(popup, "Show in FileSystem", &"", &"show_in_file_system", show_in_file_system)
-	Util.add_menu_item(popup, "Change Path...", &"", &"", prompt_change_selected_path)
+	popup.add_separator("")
+	Util.add_menu_item(popup, "Move Up", &"", &"move_file_up", move_up)
+	Util.add_menu_item(popup, "Move Down", &"", &"move_file_down", move_down)
+	Util.add_menu_item(popup, "Sort", &"", &"sort", sort_files)
+	Util.add_menu_item(popup, "Toggle Panel", &"", &"toggle_files_panel", toggle_files_panel)
 
 func init_shortcuts() -> void:
 	shortcuts[Util.get_shortcut(&"save")] = save_selected
@@ -271,7 +276,13 @@ func init_shortcuts() -> void:
 	shortcuts[Util.get_shortcut(&"close")] = close_selected
 	shortcuts[Util.get_shortcut(&"close_others")] = close_unselected
 	shortcuts[Util.get_shortcut(&"close_below")] = close_below_selected
-	shortcuts[Util.get_shortcut(&"close_all")] = close_below_selected
+	shortcuts[Util.get_shortcut(&"close_all")] = close_all
+	shortcuts[Util.get_shortcut(&"copy_path")] = copy_path
+	shortcuts[Util.get_shortcut(&"copy_uid")] = copy_uid
+	shortcuts[Util.get_shortcut(&"move_file_up")] = move_up
+	shortcuts[Util.get_shortcut(&"move_file_down")] = move_down
+	shortcuts[Util.get_shortcut(&"sort")] = sort_files
+	# Don't need toggle bc main will catch it.
 	shortcuts.erase(null)
 
 func _gui_input(event: InputEvent) -> void:
@@ -280,17 +291,15 @@ func _gui_input(event: InputEvent) -> void:
 		close_item(get_item_at_position(event.position))
 		accept_event()
 
-
 func _shortcut_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo() or not has_focus(): return
 	
 	for sc: Shortcut in shortcuts:
 		if sc.matches_event(event):
-			print("Has Focus: %s" % has_focus())
+			#print("Has Focus: %s" % has_focus())
 			accept_event()
 			shortcuts[sc].call()
 			return
-
 
 func _on_popup_menu_index_pressed(index: int) -> void:
 	popup.get_item_metadata(index).call()
@@ -302,23 +311,39 @@ func show_in_file_system() -> void:
 	if FileAccess.file_exists(item_path):
 		EditorInterface.select_file(item_path)
 
-func prompt_change_tree_path(item: TreeItem) -> void:
-	if not item: return
-	DisplayServer.dialog_input_text("Set Tree Path", "", item_get_path(item), parse_tree_path_response)
+func copy_path() -> void:
+	var path: String = item_get_path(get_selected())
+	if path:
+		DisplayServer.clipboard_set(path)
 
-func prompt_change_selected_path() -> void:
-	prompt_change_tree_path(get_selected())
-
-func parse_tree_path_response(path: String) -> void:
-	var item: TreeItem = get_selected()
-	if not item: return
-	item_get_data(item).set_path(path)
-	#item_get_root(item).take_over_path
+func copy_uid() -> void:
+	var path: String = item_get_path(get_selected())
+	var uid: String = ResourceUID.path_to_uid(item_get_path(get_selected()))
+	if uid != path:
+		DisplayServer.clipboard_set(uid)
 
 func close_items_except(items_staying: Array[TreeItem] = []) -> void:
 	for item: TreeItem in get_root().get_children():
 		if item in items_staying: continue
 		close_item(item)
+
+func move_up() -> void:
+	if not get_selected() or not get_selected().get_prev(): return
+	get_selected().move_before(get_selected().get_prev())
+
+func move_down() -> void:
+	if not get_selected() or not get_selected().get_next(): return
+	get_selected().move_after(get_selected().get_next())
+
+func toggle_files_panel() -> void:
+	request_toggle_files_panel.emit()
+
+func sort_files() -> void:
+	var items: Array[TreeItem] = get_root().get_children()
+	items.sort_custom(func (a: TreeItem, b: TreeItem) -> bool: return a.get_text(0) < b.get_text(0))
+	for i: int in items.size():
+		if get_root().get_child(i) == items[i]: continue
+		items[i].move_before(get_root().get_child(i))
 
 #endregion
 
@@ -336,25 +361,10 @@ func import_files(files: Array) -> void:
 		item.select(0)
 		break
 
-
-func move_item(to_position: Vector2, item: TreeItem) -> void:
-	if not item: return
+func move_item_to_position(to_position: Vector2, item: TreeItem) -> void:
 	var location_item: TreeItem = get_item_at_position(to_position)
-	if not location_item:
-		return
-	
-	var root: TreeItem = get_root()
-	var children: Array[TreeItem] = root.get_children()
-
-	children[location_item.get_index()] = item
-	children[item.get_index()] = location_item
-	
-	for child: TreeItem in children:
-		root.remove_child(child)
-	
-	for child: TreeItem in children:
-		root.add_child(child)
-
+	if not item or not location_item: return
+	item.move_before(location_item)
 
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	if data is Dictionary:
@@ -373,7 +383,7 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 			"files":
 				import_files(data.get("files", []))
 			"item":
-				move_item(at_position, data.item)
+				move_item_to_position(at_position, data.item)
 
 # File dock format...
 # { "type": "files", "files": ["res://BitMap.tres"], "from": @Tree@5673:<Tree#495833867875> }

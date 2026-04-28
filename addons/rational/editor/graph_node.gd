@@ -161,6 +161,11 @@ func arrange() -> void:
 	
 	arrange_queued = false
 
+func shift_tree(offset: Vector2) -> void:
+	for child: TreePositionComponent in positioner.children:
+		child.item.shift_tree(offset)
+	position_offset += offset
+
 func is_inherited() -> bool:
 	return not root and component and not component.is_built_in()
 

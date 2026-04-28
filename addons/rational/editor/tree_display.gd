@@ -12,8 +12,12 @@ const META_VISIBLE: StringName = &"visible"
 const COLOR_HIDDEN: Color = Color.DIM_GRAY
 const COLOR_VISIBLE: Color = Color.WHITE
 
+signal shortcut_input_event(event: InputEvent)
+
 signal menu_item_selected(menu_item: int)
 signal request_reparent(comp: RationalComponent,  current_parent: RationalComponent, target_parent: RationalComponent, index: int)
+
+signal shortcut_
 
 @export var tree_filter_line_edit: LineEdit
 
@@ -27,59 +31,46 @@ var deselect_queued: bool = false
 # Keeping reference for menu options potentially.
 var clipboard: Array[RationalComponent]
 
+var menu_options_callable: Callable
+var rename_shortcut: Shortcut = Util.get_shortcut(&"rename")
+
 func _ready() -> void:
 	tree_filter_line_edit.right_icon = Util.get_icon(&"Search", &"EditorIcons")
 	Util.get_cache().edited_tree_changed.connect(edit_tree)
-	selection
 	selection.selected_component.connect(_on_selected_component)
-
 	item_mouse_selected.connect(_on_item_mouse_selected)
 	multi_selected.connect(_on_multi_selected)
 	button_clicked.connect(_on_button_clicked)
-	
 	
 	menu = Menu.new()
 	add_child(menu)
 	menu.id_pressed.connect(_on_menu_id_pressed)
 	
 	tree_filter_line_edit.text_changed.connect(_on_filter_text_changed)
+	
+
+func _shortcut_input(event: InputEvent) -> void:
+	if not event.is_pressed() or event.is_echo() or not has_focus(): return
+	
+	if rename_shortcut.matches_event(event):
+		rename()
+		accept_event()
+		return
+	
+	shortcut_input_event.emit(event)
 
 func show_popup(at_position: Vector2) -> void:
 	menu.popup_at(get_menu_options(), get_screen_position() + at_position)
 
-func can_paste() -> bool:
-	return not clipboard.is_empty()
+func get_menu_options() -> int:
+	return menu_options_callable.call(item_get_comp(get_selected())) if menu_options_callable else Menu.ITEM_NONE
 
 func _on_menu_id_pressed(id: int) -> void:
-	if id == Menu.ITEM_RENAME:
-		rename()
-		return
-	
-	menu_item_selected.emit(id, item_get_comp(get_selected()))
-
-
-func get_menu_options() -> int:
-	var comps:= selection.get_selected_components()
-	
-	var options: int = Menu.ITEMS_DEFAULT | Menu.ITEM_SHOW_IN_EDITOR | \
-			((Menu.ITEM_PASTE_AS_SIBLING | Menu.ITEM_PASTE) * int(can_paste()))
-	
-	if active_root.root in comps:
-		options &= ~(Menu.ITEM_REPARENT | Menu.ITEM_PASTE_AS_SIBLING | Menu.ITEM_CUT)
-	
-	if comps.size() == 1:
-		options |= Menu.ITEM_MOVE_DOWN | Menu.ITEM_MOVE_UP | Menu.ITEM_SAVE_AS_ROOT
-		
-		if comps[0] is Composite:
-			options |=  Menu.ITEM_ADD_CHILD | Menu.ITEM_INSTANTIATE_NODE
-		
-		else:
-			options &= ~Menu.ITEM_PASTE
-	
-	else:
-		options &= ~(Menu.ITEM_CHANGE_TYPE | Menu.ITEM_PASTE | Menu.ITEM_PASTE_AS_SIBLING)
-	
-	return options
+	match id:
+		Menu.ITEM_RENAME:
+			rename()
+		_:
+			menu_item_selected.emit(id, item_get_comp(get_selected()))
 
 func rename() -> void:
 	if not get_selected(): return
@@ -275,6 +266,7 @@ func filter_children(items: Array[TreeItem]) -> Array[TreeItem]:
 		if result[i].get_parent() in items:
 			result.remove_at(i)
 	return result
+
 
 #region Drag&Drop
 

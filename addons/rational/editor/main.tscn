@@ -178,7 +178,7 @@ custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Filter Components"
-right_icon = SubResource("DPITexture_hsmtw")
+right_icon = SubResource("DPITexture_gplcq")
 
 [node name="TreeDisplay" type="Tree" parent="MainVBox/main/VSplitTreePanel/VBoxTreeDisplay" unique_id=158337772 node_paths=PackedStringArray("tree_filter_line_edit")]
 unique_name_in_owner = true
@@ -191,6 +191,7 @@ theme_override_constants/button_margin = 0
 theme_override_constants/icon_max_width = 16
 theme_override_constants/draw_guides = 0
 theme_override_constants/draw_relationship_lines = 1
+allow_rmb_select = true
 select_mode = 2
 auto_tooltip = false
 script = ExtResource("4_0erff")
@@ -204,48 +205,62 @@ size_flags_stretch_ratio = 2.0
 snapping_enabled = false
 connection_lines_thickness = 7.0
 connections = Array[Dictionary]([{
-"from_node": &"-9223370294188500030",
+"from_node": &"-9223370295681672249",
 "from_port": 0,
 "keep_alive": false,
-"to_node": &"-9223370294272386115",
+"to_node": &"-9223370295715226683",
 "to_port": 0
 }, {
-"from_node": &"-9223370294205277247",
+"from_node": &"-9223370295681672249",
 "from_port": 0,
 "keep_alive": false,
-"to_node": &"-9223370294255608898",
+"to_node": &"-9223370295698449466",
 "to_port": 0
 }, {
-"from_node": &"-9223370294205277247",
+"from_node": &"-9223370295564231730",
 "from_port": 0,
 "keep_alive": false,
-"to_node": &"-9223370294238831681",
+"to_node": &"-9223370295681672249",
 "to_port": 0
 }, {
-"from_node": &"-9223370294205277247",
+"from_node": &"-9223370295564231730",
 "from_port": 0,
 "keep_alive": false,
-"to_node": &"-9223370294222054464",
+"to_node": &"-9223370295664895032",
 "to_port": 0
 }, {
-"from_node": &"-9223370294188500030",
+"from_node": &"-9223370295581008947",
 "from_port": 0,
 "keep_alive": false,
-"to_node": &"-9223370294205277247",
+"to_node": &"-9223370295648117815",
 "to_port": 0
 }, {
-"from_node": &"-9223360177241963929",
+"from_node": &"-9223370295581008947",
 "from_port": 0,
 "keep_alive": false,
-"to_node": &"-9223360177225247986",
+"to_node": &"-9223370295631340598",
 "to_port": 0
 }, {
-"from_node": &"-9223360177258812330",
+"from_node": &"-9223370295581008947",
 "from_port": 0,
 "keep_alive": false,
-"to_node": &"-9223360177241963929",
+"to_node": &"-9223370295614563381",
+"to_port": 0
+}, {
+"from_node": &"-9223370295581008947",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223370295597786164",
+"to_port": 0
+}, {
+"from_node": &"-9223370295564231730",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"-9223370295581008947",
 "to_port": 0
 }])
+zoom_min = 0.078
+show_zoom_label = true
 show_arrange_button = false
 script = ExtResource("5_hsmtw")
 popup = NodePath("CreatePopup")

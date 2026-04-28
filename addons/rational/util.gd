@@ -197,8 +197,22 @@ static func get_shortcut(name: StringName) -> Shortcut:
 			return EditorInterface.get_editor_settings().get_shortcut("canvas_item_editor/zoom_plus")
 		&"toggle_files_panel":
 			return EditorInterface.get_editor_settings().get_shortcut("script_editor/toggle_files_panel")
+		&"copy_path":
+			return EditorInterface.get_editor_settings().get_shortcut("script_editor/copy_path")
+		&"copy_uid":
+			return EditorInterface.get_editor_settings().get_shortcut("script_editor/copy_uid")
 		&"show_in_filesystem", &"show_in_file_system":
 			return EditorInterface.get_editor_settings().get_shortcut("script_editor/show_in_file_system")
+		&"move_file_up":
+			return EditorInterface.get_editor_settings().get_shortcut("script_editor/window_move_up")
+		&"move_file_down":
+			return EditorInterface.get_editor_settings().get_shortcut("script_editor/window_move_down")
+		&"move_up":
+			return EditorInterface.get_editor_settings().get_shortcut("scene_tree/move_up")
+		&"move_down":
+			return EditorInterface.get_editor_settings().get_shortcut("scene_tree/move_down")
+		&"sort":
+			return EditorInterface.get_editor_settings().get_shortcut("script_editor/window_sort")
 		_ when "zoom_percent".is_subsequence_of(name):
 			return EditorInterface.get_editor_settings().get_shortcut("canvas_item_editor/%s" % name)
 	push_warning("No shortcut found: '%s'" % name)

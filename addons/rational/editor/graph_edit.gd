@@ -73,7 +73,7 @@ var clipboard: Array[RationalComponent]
 func _ready() -> void:
 	selection.selected_component.connect(_on_selected_component)
 	cache.edited_tree_changed.connect(set_active_root)
-	set_active_root(cache.get_edited_tree())
+	
 	
 	custom_minimum_size = Vector2(200, 200) * EditorInterface.get_editor_scale()
 	
@@ -115,11 +115,10 @@ func _ready() -> void:
 	tree_display.item_edited.connect(_on_tree_display_item_edited)
 	tree_display.request_reparent.connect(comp_reparent)
 	tree_display.clipboard = clipboard
+	tree_display.menu_options_callable = get_tree_display_menu_options
+	tree_display.shortcut_input_event.connect(_shortcut_input)
 	
 	init_shortcuts()
-
-func _on_tree_display_item_edited() -> void:
-	rename_comp(tree_display.item_get_comp(tree_display.get_edited()), tree_display.item_get_name(tree_display.get_edited()))
 
 
 func _on_child_entered_tree(node: Node) -> void:
@@ -140,7 +139,6 @@ func _on_child_exiting_tree(node: Node) -> void:
 		node.transform_changed.disconnect(queue_redraw)
 		node.request_rename.disconnect(rename_comp)
 		selection.remove_component(node.component)
-
 
 func node_connect(from: String, to: String) -> Error:
 	if not has_node(from) or not has_node(to):
@@ -179,6 +177,7 @@ func _on_popup_request(at_position: Vector2) -> void:
 		return
 	
 	show_quick_create_popup(get_screen_position() + at_position)
+	
 
 func get_menu_options(node: RationalGraphNode = null) -> int:
 	var selected_nodes:= get_selected_nodes()
@@ -187,15 +186,12 @@ func get_menu_options(node: RationalGraphNode = null) -> int:
 		return (Menu.ITEMS_HERE ^ (Menu.ITEM_PASTE_HERE * int(not can_paste()))) \
 				^ (Menu.ITEM_MOVE_NODE_HERE * int(selected_nodes.is_empty()))
 	
-	assert(not selected_nodes.is_empty()) 
 	var options: int = Menu.ITEMS_DEFAULT | ( Menu.ITEM_PASTE * int(can_paste()))
-	options |= int(node.component is Composite) * (Menu.ITEM_ADD_CHILD | Menu.ITEM_INSTANTIATE_NODE)
 	var parent: RationalComponent = comp_get_parent(node.component)
+	
+	options |= int(node.component is Composite) * (Menu.ITEM_ADD_CHILD | Menu.ITEM_INSTANTIATE_CHILD)
 	options |= Menu.ITEM_PASTE_AS_SIBLING  * int(parent and not parent is Decorator and can_paste())
-	
-	
-	if 1 < selected_nodes.size():
-		options &= ~(Menu.ITEM_SAVE_AS_ROOT)
+	options |= Menu.ITEM_ARRANGE_SUBTREE * mini(node_get_children(node).size(), 1)
 	
 	return options
 
@@ -209,8 +205,10 @@ func _on_menu_id_pressed(id: int) -> void:
 			shift_selected(false)
 		Menu.ITEM_ADD_CHILD:
 			add_child_component()
-		Menu.ITEM_INSTANTIATE_NODE:
+		Menu.ITEM_INSTANTIATE_CHILD:
 			instantiate_child()
+		Menu.ITEM_INSTANTIATE_HERE:
+			instantiate_here()
 		Menu.ITEM_CUT:
 			cut()
 		Menu.ITEM_COPY:
@@ -229,21 +227,36 @@ func _on_menu_id_pressed(id: int) -> void:
 			change_type()
 		Menu.ITEM_SAVE_AS_ROOT:
 			save_as_root()
+		Menu.ITEM_ARRANGE_SUBTREE:
+			arrange_subtree()
 		Menu.ITEM_DOCUMENTATION:
 			open_documentation()
 		Menu.ITEM_DELETE:
 			delete()
 		Menu.ITEM_ADD_NODE_HERE:
 			add_node_here()
-		Menu.ITEM_INSTANTIATE_NODE_HERE:
-			pass
 		Menu.ITEM_MOVE_NODE_HERE:
 			move_nodes_here(get_selected_nodes())
+
+#region TreeDisplay Menu
+
+func get_tree_display_menu_options(selected_comp: RationalComponent) -> int:
+	selected_node = comp_get_graph_node(selected_comp)
+	var options: int = get_menu_options(selected_node)
+	options &= ~(Menu.ITEMS_HERE)
+	options |= Menu.ITEM_SHOW_IN_EDITOR | Menu.ITEM_MOVE_DOWN | Menu.ITEM_MOVE_UP
+	clear_selected_node()
+	return options
 
 func _on_tree_display_menu_selected(id: int, comp: RationalComponent) -> void:
 	selected_node = comp_get_graph_node(comp)
 	_on_menu_id_pressed(id)
 	clear_selected_node.call_deferred()
+
+func _on_tree_display_item_edited() -> void:
+	rename_comp(tree_display.item_get_comp(tree_display.get_edited()), tree_display.item_get_name(tree_display.get_edited()))
+
+#endregion TreeDisplay Menu
 
 #endregion Menu
 
@@ -313,7 +326,9 @@ func add_child_from_path(path: String, parent: RationalComponent = null, offset:
 
 func instantiate_child() -> void:
 	pass
-	
+
+func instantiate_here() -> void:
+	pass
 
 func add_child_component() -> void:
 	var selected: RationalComponent = get_selected_comp()
@@ -503,6 +518,8 @@ func zoom_out() -> void:
 func center_selection() -> void:
 	if has_selected_node(): 
 		scroll_offset = nodes_get_rect(get_selected_nodes()).get_center() * zoom - size / 2.0
+	elif active_root:
+		scroll_offset = comp_get_graph_node(get_root_component()).get_rect().get_center() * zoom - size / 2.0
 
 func frame_selection() -> void:
 	if not has_selected_node(): return
@@ -518,6 +535,14 @@ func toggle_grid() -> void:
 func toggle_snap() -> void:
 	snapping_enabled = !snapping_enabled
 
+func arrange_subtree() -> void:
+	if is_dragging_connection or not has_selected_node(): return
+	var selected: RationalGraphNode = get_selected()
+	var original_offset: Vector2 = selected.position_offset
+	node_arrange(selected)
+	selected.shift_tree(original_offset - selected.position_offset)
+	
+
 func open_documentation() -> void:
 	if not is_dragging_connection and has_selected_node():
 		EditorInterface.get_script_editor().goto_help("class_name:%s" % get_selected().get_component_class())
@@ -529,7 +554,9 @@ func _shortcut_input(event: InputEvent) -> void:
 	
 	for sc: Shortcut in shortcuts:
 		if sc.matches_event(event):
-			printt("GraphEdit Calling shortcut: %s " % sc.get_as_text())
+			
+			if OS.is_stdout_verbose():
+				print("GraphEdit Calling shortcut: %s" % sc.get_as_text())
 			
 			accept_event()
 			shortcuts[sc].call()
@@ -762,7 +789,7 @@ func delete_node(node_name: String) -> void:
 		return
 	
 	for con: Dictionary in get_connection_list_from_node(node_name):
-		disconnect_node(con.from_node, 0, con.to_node, 0)
+		node_disconnect(con.from_node, con.to_node)
 		if con.to_node == node_name:
 			var parent: RationalComponent = node_get_comp(con.from_node)
 			parent.remove_child(node.component)
@@ -770,7 +797,6 @@ func delete_node(node_name: String) -> void:
 	
 	remove_child(node)
 	node.free()
-	
 
 ## Adds a new/existing component.
 func add_comp(comp: RationalComponent, parent: RationalComponent = null, index: int = -1) -> void:
@@ -778,7 +804,6 @@ func add_comp(comp: RationalComponent, parent: RationalComponent = null, index: 
 	var node: RationalGraphNode = add_node(comp)
 	if parent:
 		parent.add_child(comp, index)
-	
 
 ## Removes component from the graph entirely. Looks for parent component to remove.
 func remove_component(comp: RationalComponent) -> void:
@@ -804,13 +829,16 @@ func comp_remove_tree(comp: RationalComponent) -> void:
 	for child: RationalComponent in comp.get_children():
 		comp_remove_tree(child)
 
+## Arranges all children of [param node].
 func node_arrange(node: RationalGraphNode) -> void:
 	if not node: return
 	node_update_positioner(node)
 	node.positioner.calculate_relative()
 	node.arrange()
 
-## Only updates [param node] positioner and all children of [param node].
+
+
+## Only updates [param node]'s positioner and all children of [param node].
 func node_update_positioner(node: RationalGraphNode) -> void:
 	var children: Array[RationalGraphNode] = []
 	children.assign(node.component.get_children().filter(comp_has_node).map(comp_get_graph_node))
@@ -983,7 +1011,7 @@ func restore_graph_state(state: Dictionary) -> void:
 
 
 func can_restore_state() -> bool:
-	return active_root and graph_states.has(active_root)
+	return active_root and graph_states.has(active_root) and is_node_ready()
 
 func get_elbow_connection_line(from_position: Vector2, to_position: Vector2) -> PackedVector2Array:
 	var points: PackedVector2Array
@@ -1154,11 +1182,10 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _draw() -> void:
+	if not active_root: return
 	const LINE_COLOR := Color.WHITE
 	var line_width: float = connection_lines_thickness * zoom
-	if not is_node_ready(): return
 	for c: Dictionary in get_connection_list():
-		
 		var output_port_position: Vector2 = node_get_port_positon(get_node(String(c.from_node)), true)
 		var input_port_position: Vector2 = node_get_port_positon(get_node(String(c.to_node)), false)
 		var line := get_elbow_connection_line(output_port_position, input_port_position)
@@ -1280,13 +1307,12 @@ func create_action(action_name: String, merge_mode: UndoRedo.MergeMode = UndoRed
 	if not active_root.closed.is_connected(undo_redo.clear_history) and active_root.is_builtin():
 		active_root.closed.connect(undo_redo.clear_history.bind(EditorUndoRedoManager.GLOBAL_HISTORY))
 	
-	print("Comitting action => %s" % undo_redo.is_committing_action())
 	undo_redo.create_action(action_name, merge_mode, cache, false, root_changed)
 	undo_redo.add_undo_method(cache, &"set_edited_tree", active_root)
 	undo_redo.add_do_method(cache, &"set_edited_tree", active_root)
 	
 	if root_changed:
-		var version: int = get_version()
+		var version: int = undo_redo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY).get_version()
 		active_root.change_version(version, version + 1)
 		undo_redo.add_undo_method(active_root, &"change_version", version + 1, version)
 		undo_redo.add_do_method(active_root, &"change_version", version, version + 1)
@@ -1298,10 +1324,6 @@ func commit(execute: bool = true) -> void:
 
 func clear_undo_redo_history() -> void:
 	undo_redo.clear_history(EditorUndoRedoManager.GLOBAL_HISTORY)
-
-## Returns the current version of the Global [UndoRedo] history.
-func get_version() -> int:
-	return undo_redo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY).get_version()
 
 func _on_version_changed() -> void:
 	if not active_root: return

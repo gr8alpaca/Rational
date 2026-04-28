@@ -33,11 +33,11 @@ const TreeDisplay := preload("res://addons/rational/editor/tree_display.gd")
 const GraphEditor := preload("res://addons/rational/editor/graph_edit.gd")
 const Settings := preload("res://addons/rational/settings.gd")
 const RationalGraphNode = preload("uid://vsth43p1vl5f")
-const GraphState = preload("uid://bft33tkdb5bm1")
 
 func _run() -> void:
 	print("Running...")
 	if not Engine.has_singleton(&"Rational"): return
+	var editor_settings: EditorSettings = EditorInterface.get_editor_settings()
 	var plugin: RationalPlugin = Engine.get_singleton(&"Rational")
 	var inspector := EditorInterface.get_inspector()
 	var undo_redo: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
@@ -58,7 +58,9 @@ func _run() -> void:
 	const PATH := "res://TestScene/test_scene_character.tscn::Resource_q1v5c"
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	
-
+	root_file_tree.init_popup()
+	root_file_tree.init_shortcuts()
+	#print_shortcuts()
 
 
 func get_property(name: StringName) -> Dictionary:
@@ -66,6 +68,9 @@ func get_property(name: StringName) -> Dictionary:
 		if dict.name == name:
 			return dict
 	return {}
+
+func print_shortcuts() -> void:
+	print("\n".join(EditorInterface.get_editor_settings().get_shortcut_list()))
 
 func print_cache(c: Cache) -> void:
 	printt("Paths:\n —", "\n —".join(c.path_list))
