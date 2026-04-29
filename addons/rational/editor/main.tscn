@@ -178,7 +178,7 @@ custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Filter Components"
-right_icon = SubResource("DPITexture_gplcq")
+right_icon = SubResource("DPITexture_hsmtw")
 
 [node name="TreeDisplay" type="Tree" parent="MainVBox/main/VSplitTreePanel/VBoxTreeDisplay" unique_id=158337772 node_paths=PackedStringArray("tree_filter_line_edit")]
 unique_name_in_owner = true
@@ -347,5 +347,4 @@ bbcode_enabled = true
 meta_underlined = false
 hint_underlined = false
 
-[connection signal="theme_changed" from="." to="." method="apply_theme"]
 [connection signal="index_pressed" from="MainVBox/main/VSplitTreePanel/VBoxRootFileTree/RootList/PopupMenu" to="MainVBox/main/VSplitTreePanel/VBoxRootFileTree/RootList" method="_on_popup_menu_index_pressed"]

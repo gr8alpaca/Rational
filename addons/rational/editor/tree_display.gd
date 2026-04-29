@@ -5,79 +5,40 @@ const Util := preload("res://addons/rational/util.gd")
 
 const Selection:= preload("selection.gd")
 
-const Menu := preload("popup_menu.gd")
 
 const META_VISIBLE: StringName = &"visible"
 
 const COLOR_HIDDEN: Color = Color.DIM_GRAY
 const COLOR_VISIBLE: Color = Color.WHITE
 
-signal shortcut_input_event(event: InputEvent)
-
 signal menu_item_selected(menu_item: int)
 signal request_reparent(comp: RationalComponent,  current_parent: RationalComponent, target_parent: RationalComponent, index: int)
-
-signal shortcut_
 
 @export var tree_filter_line_edit: LineEdit
 
 var selection: Selection = Util.get_selection()
-var menu: Menu
 
 var active_root: RootData: set = set_active_root
 
 var deselect_queued: bool = false
 
-# Keeping reference for menu options potentially.
-var clipboard: Array[RationalComponent]
-
-var menu_options_callable: Callable
 var rename_shortcut: Shortcut = Util.get_shortcut(&"rename")
 
 func _ready() -> void:
 	tree_filter_line_edit.right_icon = Util.get_icon(&"Search", &"EditorIcons")
-	Util.get_cache().edited_tree_changed.connect(edit_tree)
 	selection.selected_component.connect(_on_selected_component)
-	item_mouse_selected.connect(_on_item_mouse_selected)
 	multi_selected.connect(_on_multi_selected)
 	button_clicked.connect(_on_button_clicked)
 	
-	menu = Menu.new()
-	add_child(menu)
-	menu.id_pressed.connect(_on_menu_id_pressed)
-	
 	tree_filter_line_edit.text_changed.connect(_on_filter_text_changed)
-	
 
-func _shortcut_input(event: InputEvent) -> void:
-	if not event.is_pressed() or event.is_echo() or not has_focus(): return
-	
-	if rename_shortcut.matches_event(event):
-		rename()
+func _gui_input(event: InputEvent) -> void:
+	if event.is_pressed() and not event.is_echo() and rename_shortcut.matches_event(event):
 		accept_event()
-		return
-	
-	shortcut_input_event.emit(event)
-
-func show_popup(at_position: Vector2) -> void:
-	menu.popup_at(get_menu_options(), get_screen_position() + at_position)
-
-func get_menu_options() -> int:
-	return menu_options_callable.call(item_get_comp(get_selected())) if menu_options_callable else Menu.ITEM_NONE
-
-func _on_menu_id_pressed(id: int) -> void:
-	match id:
-		Menu.ITEM_RENAME:
-			rename()
-		_:
-			menu_item_selected.emit(id, item_get_comp(get_selected()))
+		rename()
 
 func rename() -> void:
-	if not get_selected(): return
 	edit_selected(true)
-
-func edit_tree(data: RootData) -> void:
-	set_active_root(data)
 
 func set_active_root(data: RootData) -> void:
 	if active_root == data: return
@@ -118,9 +79,9 @@ func populate_tree() -> void:
 	
 
 
-func add_component(comp: RationalComponent, parent: TreeItem = null) -> void:
+func add_component(comp: RationalComponent, parent: TreeItem = null, index: int = -1) -> void:
 	if not comp: return
-	var item: TreeItem = create_item(parent)
+	var item: TreeItem = create_item(parent, index)
 	item.set_metadata(0, comp)
 	item.set_icon(0, Util.comp_get_icon(comp))
 	item.add_button(0, get_visible_icon(true), -1, false, "Toggle Visibility")
@@ -134,9 +95,19 @@ func add_component(comp: RationalComponent, parent: TreeItem = null) -> void:
 	comp.script_changed.connect(item.emit_signal.bind(SIGNAL_NAME))
 	item.connect(SIGNAL_NAME, _on_item_changed, CONNECT_APPEND_SOURCE_OBJECT)
 	
+	if comp is Composite:
+		item.add_user_signal("component_child_added", [{name = "child", type = TYPE_OBJECT}])
+		comp.child_added.connect(func (c: RationalComponent) -> void: item.emit_signal(&"component_child_added", c))
+		item.connect(&"component_child_added", _on_component_child_added, CONNECT_APPEND_SOURCE_OBJECT)
+		
+		item.add_user_signal("component_child_removed", [{name = "child", type = TYPE_OBJECT}])
+		comp.child_added.connect(func (c: RationalComponent) -> void: item.emit_signal(&"component_child_removed", c))
+		item.connect(&"component_child_removed", _on_component_child_removed, CONNECT_APPEND_SOURCE_OBJECT)
+	
 	for child: RationalComponent in comp.get_children():
 		if not child: continue
 		add_component(child, item)
+
 
 func item_apply_filter(item: TreeItem, filter_text: String) -> bool:
 	var any_child_visible: bool = false
@@ -157,18 +128,6 @@ func filter_items(text: String) -> void:
 
 func item_get_comp(item: TreeItem) -> RationalComponent:
 	return item.get_metadata(0) if item else null
-
-
-func item_get_subtree(item: TreeItem) -> Array[TreeItem]:
-	if not item: return []
-	var result: Array[TreeItem] = [item]
-	for child: TreeItem in item.get_children():
-		result.append_array(item_get_subtree(child))
-	return result
-
-
-func get_all_items() -> Array[TreeItem]:
-	return item_get_subtree(get_root())
 
 
 func item_is_visible(item: TreeItem) -> bool:
@@ -202,6 +161,14 @@ func _on_filter_text_changed(new_text: String) -> void:
 func _on_item_changed(item: TreeItem) -> void:
 	item.set_text(0, item.get_metadata(0).resource_name)
 
+func _on_component_child_added(child: RationalComponent, item: TreeItem) -> void:
+	add_component(child, item, item_get_comp(item).get_child_index(child))
+
+func _on_component_child_removed(child: RationalComponent, item: TreeItem) -> void:
+	var child_item: TreeItem = comp_get_item(child)
+	if not child_item: return
+	item.remove_child(child_item)
+
 func _on_button_clicked(item: TreeItem, column: int, id: int, mouse_button_index: int) -> void:
 	item_set_visible(item, item.get_button(column,id) == get_theme_icon(&"GuiVisibilityHidden", &"EditorIcons"))
 
@@ -218,8 +185,9 @@ func get_all_selected_items() -> Array[TreeItem]:
 
 
 func sync_selection() -> void:
-	for item: TreeItem in get_all_items():
+	for item: TreeItem in self:
 		item_set_selected(item, selection.is_selected(item.get_metadata(0)))
+
 
 func comp_get_item(comp: RationalComponent) -> TreeItem:
 	if not comp: return null
@@ -229,6 +197,9 @@ func comp_get_item(comp: RationalComponent) -> TreeItem:
 			return item
 		item = item.get_next_in_tree(false)
 	return null
+
+func get_selected_comp() -> RationalComponent:
+	return item_get_comp(get_selected())
 
 ## Sets item selected = [param selected] and uncollapses tree if selected. 
 func item_set_selected(item: TreeItem, selected: bool) -> void:
@@ -290,7 +261,6 @@ func move_items(to_position: Vector2, items: Array[TreeItem]) -> void:
 	
 	if target_parent in top_components:
 		return
-	#var roots: Array[TreeItem] = filter_children(items)
 	
 	if 1 < top_components.size() and target_parent is Decorator:
 		return
@@ -308,10 +278,10 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	return false
 
 func _drop_data(at_position: Vector2, data: Variant) -> void:
-	if data is Dictionary:
-		match data.get("type", ""):
-			"items":
-				move_items(at_position, data.get("items", []))
+	if not data is Dictionary: return
+	match data.get("type", ""):
+		"items" when data.get("items", []) is Array:
+			move_items(at_position, data.get("items", []))
 
 # { "type": "files", "files": ["res://BitMap.tres"], "from": @Tree@5673:<Tree#495833867875> }
 func _get_drag_data(at_position: Vector2) -> Variant:
@@ -321,23 +291,37 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 		return null
 	
 	var vbox: VBoxContainer = VBoxContainer.new()
-	for i: TreeItem in selected_items:
+	for item: TreeItem in selected_items:
 		var button: Button = Button.new()
 		button.flat = true
-		button.text = i.get_text(0)
-		button.icon = i.get_icon(0)
+		button.text = item.get_text(0)
+		button.icon = item.get_icon(0)
 		button.modulate.a = 0.65
 		vbox.add_child(button)
 	
 	set_drag_preview(vbox)
 	
-	return {type = "items", items = selected_items, source = self}
+	var selected_components: Array[RationalComponent] = []
+	selected_components.assign(selected_components.map(item_get_comp))
+	
+	return {type = "items", items = selected_items, components = selected_components, source = self}
 
 #endregion 
 
-func _on_item_mouse_selected(mouse_position: Vector2, mouse_button_index: int) -> void:
-	if mouse_button_index == MOUSE_BUTTON_RIGHT:
-		show_popup(mouse_position)
+#region Iterator
+
+func _iter_init(iter: Array) -> bool:
+	iter[0] = get_root()
+	return iter[0] != null
+
+func _iter_next(iter: Array) -> bool:
+	iter[0] = iter[0].get_next_in_tree(false)
+	return iter[0] != null
+
+func _iter_get(iter: Variant) -> Variant:
+	return iter
+
+#endregion Iterator
 
 func _on_selected_component(comp: RationalComponent, selected: bool) -> void:
 	item_set_selected(comp_get_item(comp), selected)

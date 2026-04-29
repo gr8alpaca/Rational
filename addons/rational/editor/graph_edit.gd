@@ -65,15 +65,20 @@ var cache: RefCounted = Util.get_cache()
 var selection: Selection = Util.get_selection()
 var undo_redo: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 
+
 ## Node selected with right click when creating a menu.
 var selected_node: RationalGraphNode
+
+## [member menu] is being shown for [member tree_display].
+var is_tree_display_menu_active: bool = false
+
+
 
 var clipboard: Array[RationalComponent]
 
 func _ready() -> void:
 	selection.selected_component.connect(_on_selected_component)
 	cache.edited_tree_changed.connect(set_active_root)
-	
 	
 	custom_minimum_size = Vector2(200, 200) * EditorInterface.get_editor_scale()
 	
@@ -107,19 +112,15 @@ func _ready() -> void:
 	popup_request.connect(_on_popup_request)
 	
 	menu = Menu.new()
-	add_child(menu)
+	add_child(menu, false, Node.INTERNAL_MODE_FRONT)
 	menu.id_pressed.connect(_on_menu_id_pressed)
 	menu.popup_hide.connect(clear_selected_node, CONNECT_DEFERRED)
 	
 	tree_display.menu_item_selected.connect(_on_tree_display_menu_selected)
 	tree_display.item_edited.connect(_on_tree_display_item_edited)
 	tree_display.request_reparent.connect(comp_reparent)
-	tree_display.clipboard = clipboard
-	tree_display.menu_options_callable = get_tree_display_menu_options
-	tree_display.shortcut_input_event.connect(_shortcut_input)
+	tree_display.item_mouse_selected.connect(_on_tree_display_mouse_selected)
 	
-	init_shortcuts()
-
 
 func _on_child_entered_tree(node: Node) -> void:
 	if node is RationalGraphNode: 
@@ -177,7 +178,12 @@ func _on_popup_request(at_position: Vector2) -> void:
 		return
 	
 	show_quick_create_popup(get_screen_position() + at_position)
-	
+
+func _on_tree_display_mouse_selected(mouse_position: Vector2, mouse_button_index: int) -> void:
+	if mouse_button_index != MOUSE_BUTTON_RIGHT: return
+	selected_node = comp_get_graph_node(tree_display.item_get_comp(tree_display.get_item_at_position(mouse_position)))
+	is_tree_display_menu_active = true
+	menu.popup_at(get_menu_options(selected_node), tree_display.get_screen_position() + mouse_position)
 
 func get_menu_options(node: RationalGraphNode = null) -> int:
 	var selected_nodes:= get_selected_nodes()
@@ -192,6 +198,8 @@ func get_menu_options(node: RationalGraphNode = null) -> int:
 	options |= int(node.component is Composite) * (Menu.ITEM_ADD_CHILD | Menu.ITEM_INSTANTIATE_CHILD)
 	options |= Menu.ITEM_PASTE_AS_SIBLING  * int(parent and not parent is Decorator and can_paste())
 	options |= Menu.ITEM_ARRANGE_SUBTREE * mini(node_get_children(node).size(), 1)
+	# Tree Display options
+	options |= (Menu.ITEM_SHOW_IN_EDITOR | Menu.ITEM_MOVE_DOWN | Menu.ITEM_MOVE_UP) * int(is_tree_display_menu_active)
 	
 	return options
 
@@ -221,6 +229,8 @@ func _on_menu_id_pressed(id: int) -> void:
 			paste_here()
 		Menu.ITEM_DUPLICATE:
 			duplicate_components()
+		Menu.ITEM_RENAME when is_tree_display_menu_active:
+			tree_display.rename()
 		Menu.ITEM_RENAME:
 			rename()
 		Menu.ITEM_CHANGE_TYPE:
@@ -240,13 +250,6 @@ func _on_menu_id_pressed(id: int) -> void:
 
 #region TreeDisplay Menu
 
-func get_tree_display_menu_options(selected_comp: RationalComponent) -> int:
-	selected_node = comp_get_graph_node(selected_comp)
-	var options: int = get_menu_options(selected_node)
-	options &= ~(Menu.ITEMS_HERE)
-	options |= Menu.ITEM_SHOW_IN_EDITOR | Menu.ITEM_MOVE_DOWN | Menu.ITEM_MOVE_UP
-	clear_selected_node()
-	return options
 
 func _on_tree_display_menu_selected(id: int, comp: RationalComponent) -> void:
 	selected_node = comp_get_graph_node(comp)
@@ -262,24 +265,6 @@ func _on_tree_display_item_edited() -> void:
 
 
 #region shortcuts
-
-func init_shortcuts() -> void:
-	shortcuts[Util.get_shortcut(&"toggle_grid")] = toggle_grid
-	shortcuts[Util.get_shortcut(&"use_grid_snap")] = toggle_snap
-	shortcuts[Util.get_shortcut(&"frame_selection")] = frame_selection
-	shortcuts[Util.get_shortcut(&"center_selection")] = center_selection
-	shortcuts[Util.get_shortcut(&"zoom_minus")] = zoom_out
-	shortcuts[Util.get_shortcut(&"zoom_plus")] = zoom_in
-	shortcuts[Util.get_shortcut(&"cancel_transform")] = cancel_drag
-	
-	for percent_str: String in ["3.125", "6.25", "12.5", "25", "50", "100", "200", "400"]:
-		shortcuts[Util.get_shortcut("zoom_%s_percent" % percent_str)] = set_zoom.bind(float(percent_str.to_float())/100.0)
-	
-	shortcuts[Util.get_shortcut(&"rename")] = rename
-	shortcuts[Util.get_shortcut(&"change_type")] = change_type
-	shortcuts[Util.get_shortcut(&"save_as_root")] = save_as_root
-	
-	shortcuts.erase(null)
 
 func move_nodes_here(nodes: Array[RationalGraphNode]) -> void:
 	if not nodes: return
@@ -498,8 +483,9 @@ func save_as_root() -> void:
 	pass
 
 func rename() -> void:
-	if not is_dragging_connection and has_selected_node():
-		get_selected().rename()
+	if is_dragging_connection or not has_selected_node(): return
+	get_selected().rename()
+
 
 ## Creates UndoRedo action if name is not already.
 func rename_comp(comp: RationalComponent, new_name: String) -> void:
@@ -516,10 +502,10 @@ func zoom_out() -> void:
 	zoom /= zoom_step
 
 func center_selection() -> void:
-	if has_selected_node(): 
-		scroll_offset = nodes_get_rect(get_selected_nodes()).get_center() * zoom - size / 2.0
+	if has_selected_node():
+		center_offset(nodes_get_rect(get_selected_nodes()).get_center() * zoom)
 	elif active_root:
-		scroll_offset = comp_get_graph_node(get_root_component()).get_rect().get_center() * zoom - size / 2.0
+		center_offset(comp_get_graph_node(get_root_component()).get_rect().get_center() * zoom)
 
 func frame_selection() -> void:
 	if not has_selected_node(): return
@@ -537,30 +523,12 @@ func toggle_snap() -> void:
 
 func arrange_subtree() -> void:
 	if is_dragging_connection or not has_selected_node(): return
-	var selected: RationalGraphNode = get_selected()
-	var original_offset: Vector2 = selected.position_offset
-	node_arrange(selected)
-	selected.shift_tree(original_offset - selected.position_offset)
-	
+	node_arrange_children(get_selected())
 
 func open_documentation() -> void:
-	if not is_dragging_connection and has_selected_node():
-		EditorInterface.get_script_editor().goto_help("class_name:%s" % get_selected().get_component_class())
+	if is_dragging_connection or not has_selected_node(): return
+	EditorInterface.get_script_editor().goto_help("class_name:%s" % get_selected().get_component_class())
 
-
-func _shortcut_input(event: InputEvent) -> void:
-	if is_dragging_connection or not event.is_pressed() or event.is_echo() or not has_focus():
-		return
-	
-	for sc: Shortcut in shortcuts:
-		if sc.matches_event(event):
-			
-			if OS.is_stdout_verbose():
-				print("GraphEdit Calling shortcut: %s" % sc.get_as_text())
-			
-			accept_event()
-			shortcuts[sc].call()
-			return
 
 #endregion shortcuts
 
@@ -794,7 +762,6 @@ func delete_node(node_name: String) -> void:
 			var parent: RationalComponent = node_get_comp(con.from_node)
 			parent.remove_child(node.component)
 	
-	
 	remove_child(node)
 	node.free()
 
@@ -866,6 +833,9 @@ func node_get_children(node: RationalGraphNode) -> Array[RationalGraphNode]:
 			result.push_back(get_node(String(con.to_node)))
 	return result
 
+func center_offset(offset: Vector2) -> void:
+	scroll_offset = offset - size / 2.0
+
 
 func _on_component_child_added(comp: RationalComponent, node: RationalGraphNode) -> void:
 	var node_exists: bool = comp_has_node(comp)
@@ -896,7 +866,9 @@ func node_verify_children_position(node: RationalGraphNode) -> void:
 
 
 func node_arrange_children(node: RationalGraphNode) -> void:
-	node.queue_arrange()
+	var original_offset: Vector2 = node.position_offset
+	node_arrange(node)
+	node.shift_tree(original_offset - node.position_offset)
 
 
 func node_place_child(parent: RationalGraphNode, child: RationalGraphNode) -> void:
@@ -959,7 +931,6 @@ func clear() -> void:
 func set_active_root(val: RootData) -> void:
 		if active_root == val: return
 		
-		
 		if active_root:
 			active_root.closed.disconnect(close_active_root)
 			graph_states[active_root] = get_graph_state()
@@ -969,6 +940,7 @@ func set_active_root(val: RootData) -> void:
 		if active_root:
 			active_root.closed.connect(close_active_root)
 		
+		tree_display.set_active_root(active_root)
 		update_graph()
 
 func close_active_root() -> void:
@@ -1334,6 +1306,7 @@ func _on_version_changed() -> void:
 
 func clear_selected_node() -> void:
 	selected_node = null
+	is_tree_display_menu_active = false
 
 func comp_set_selected(comp: RationalComponent, selected: bool) -> void:
 	if not comp_has_node(comp): return
@@ -1357,10 +1330,12 @@ func has_selected_node() -> bool:
 
 func get_selected_nodes() -> Array[RationalGraphNode]:
 	var result: Array[RationalGraphNode]
-	for comp: RationalComponent in get_selected_components():
-		if not comp_has_node(comp): continue
-		result.push_back(comp_get_graph_node(comp))
+	result.assign(get_selected_components().map(comp_get_graph_node).filter(is_instance_valid))
 	return result
+	#for comp: RationalComponent in get_selected_components():
+		#if not comp_has_node(comp): continue
+		#result.push_back(comp_get_graph_node(comp))
+	#return result
 
 ## If multiple nodes are selected, the one selected by the menu is chosen.
 ## If no node was selected by the menu, then it gets the closest to mouse.

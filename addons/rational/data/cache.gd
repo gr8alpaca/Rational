@@ -200,8 +200,10 @@ func save() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
 	cfg.set_value(SECTION, KEY_ROOT_DATA, root_data)
 	var err:= cfg.save(get_save_path())
+	
 	if err == OK:
-		print_rich("[color=green]Cache saved %d roots.[/color]" % root_data.size())
+		if OS.is_stdout_verbose():
+			print_rich("[color=green]Cache saved %d roots.[/color]" % root_data.size())
 	else:
 		printerr("Rational cache save error: %s" % error_string(err))
 

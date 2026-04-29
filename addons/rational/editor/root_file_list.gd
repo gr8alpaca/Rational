@@ -362,9 +362,15 @@ func import_files(files: Array) -> void:
 		break
 
 func move_item_to_position(to_position: Vector2, item: TreeItem) -> void:
-	var location_item: TreeItem = get_item_at_position(to_position)
-	if not item or not location_item: return
-	item.move_before(location_item)
+	if not item: return
+	if get_item_at_position(to_position):
+		item.move_before(get_item_at_position(to_position))
+	
+	elif to_position.y < 16:
+		item.move_before(get_root().get_first_child())
+	
+	elif to_position.y > get_item_area_rect(get_root().get_child(-1)).end.y:
+		item.move_after(get_root().get_child(-1))
 
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	if data is Dictionary:
@@ -385,8 +391,7 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 			"item":
 				move_item_to_position(at_position, data.item)
 
-# File dock format...
-# { "type": "files", "files": ["res://BitMap.tres"], "from": @Tree@5673:<Tree#495833867875> }
+# File dock format: { "type": "files", "files": ["res://BitMap.tres"], "from": @Tree@5673:<Tree#495833867875> }
 func _get_drag_data(at_position: Vector2) -> Variant:
 	var item: TreeItem = get_item_at_position(at_position)
 	if not item:

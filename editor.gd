@@ -58,9 +58,10 @@ func _run() -> void:
 	const PATH := "res://TestScene/test_scene_character.tscn::Resource_q1v5c"
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	
-	root_file_tree.init_popup()
-	root_file_tree.init_shortcuts()
-	#print_shortcuts()
+	tree_display.sync_selection()
+	add_user_signal("foo")
+	print(has_user_signal("foo"))
+	print(get("foo"))
 
 
 func get_property(name: StringName) -> Dictionary:
