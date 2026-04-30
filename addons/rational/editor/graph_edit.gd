@@ -18,6 +18,8 @@ const DUPLICATE_OFFSET: Vector2 = Vector2(25.0, 25.0)
 const SIBLING_DISTANCE_MIN: float = 32.0
 #const PARENT_DISTANCE_MIN: float = 240.0
 
+signal history_cleared
+
 @export var popup: CreatePopup
 @export var tree_display: TreeDisplay
 
@@ -66,6 +68,7 @@ var clipboard: Array[RationalComponent]
 func _ready() -> void:
 	selection.selected_component.connect(_on_selected_component)
 	cache.edited_tree_changed.connect(set_active_root)
+	cache
 	
 	custom_minimum_size = Vector2(200, 200) * EditorInterface.get_editor_scale()
 	
@@ -111,6 +114,10 @@ func _ready() -> void:
 	tree_display.request_reparent.connect(comp_reparent)
 	tree_display.item_mouse_selected.connect(_on_tree_display_mouse_selected)
 	
+	undo_redo.history_changed.connect(_on_history_changed)
+
+func _exit_tree() -> void:
+	undo_redo.clear_history(EditorUndoRedoManager.GLOBAL_HISTORY)
 
 func _on_child_entered_tree(node: Node) -> void:
 	if node is RationalGraphNode: 
@@ -684,7 +691,6 @@ func node_get_parent(node: String) -> RationalGraphNode:
 
 func update_graph() -> void:
 	if active_root and not active_root.is_loaded():
-		active_root.loaded.connect(update_graph, CONNECT_ONE_SHOT)
 		return
 	
 	if updating_graph:
@@ -940,23 +946,33 @@ func clear() -> void:
 
 
 func set_active_root(val: RootData) -> void:
-		if active_root == val: return
+	if active_root == val: return
+	
+	if active_root:
+		active_root.closed.disconnect(close_active_root)
+		graph_states[active_root] = get_graph_state()
+	
+	active_root = val
+	tree_display.set_active_root(active_root)
+	
+	if active_root:
+		active_root.closed.connect(close_active_root)
 		
-		if active_root:
-			active_root.closed.disconnect(close_active_root)
-			graph_states[active_root] = get_graph_state()
+		if active_root.is_builtin():
+			EditorInterface.open_scene_from_path(active_root.get_scene_file())
 		
-		active_root = val
-		
-		if active_root:
-			active_root.closed.connect(close_active_root)
-		
-		tree_display.set_active_root(active_root)
-		update_graph()
+		if not active_root.is_loaded() and not active_root.loaded.is_connected(_on_active_root_loaded):
+			active_root.loaded.connect(_on_active_root_loaded, CONNECT_ONE_SHOT | CONNECT_APPEND_SOURCE_OBJECT)
+			return
+	
+	update_graph()
+
+func _on_active_root_loaded(root: RootData) -> void:
+	if root != active_root: return
+	update_graph()
 
 func close_active_root() -> void:
 	graph_states.erase(active_root)
-
 	active_root = null
 
 
@@ -1282,18 +1298,40 @@ func comp_move_child(parent: RationalComponent, from_idx: int, to_idx: int) -> v
 
 #region UndoRedo
 
+func get_undo_redo_custom_context() -> Object:
+	if not active_root.root: return cache
+	if not active_root.root:
+		return cache
+	
+	if active_root.root.get_local_scene():
+		active_root.root.get_local_scene()
+	match undo_redo.get_object_history_id(get_root_component()):
+		EditorUndoRedoManager.INVALID_HISTORY:
+			return cache
+		
+	return self
+
 ## Returns [code]true[/code] if action was created and returns [code]false[/code] otherwise.
 func create_action(action_name: String, merge_mode: UndoRedo.MergeMode = UndoRedo.MERGE_ALL, root_changed: bool  = true) -> bool:
-	if not active_root: 
-		return false
+	if not active_root: return false
 	
 	if not active_root.closed.is_connected(undo_redo.clear_history) and active_root.is_builtin():
 		active_root.closed.connect(undo_redo.clear_history.bind(EditorUndoRedoManager.GLOBAL_HISTORY))
 	
-	undo_redo.create_action(action_name, merge_mode, cache, false, root_changed)
+	var context: Object = active_root.root
 	
-	undo_redo.add_undo_method(cache, &"set_edited_tree", active_root)
-	undo_redo.add_do_method(cache, &"set_edited_tree", active_root)
+	if active_root.is_builtin():
+		EditorInterface.open_scene_from_path(active_root.get_scene_file())
+	elif not active_root.root.get_local_scene():
+		context = cache
+	
+	undo_redo.create_action(action_name, merge_mode, context, false, root_changed)
+	
+	# Prevents mismatch issues.
+	undo_redo.force_fixed_history()
+	
+	undo_redo.add_undo_method(active_root, &"edit")
+	undo_redo.add_do_method(active_root, &"edit")
 	
 	if root_changed:
 		var version: int = undo_redo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY).get_version()
@@ -1301,12 +1339,22 @@ func create_action(action_name: String, merge_mode: UndoRedo.MergeMode = UndoRed
 		undo_redo.add_undo_method(active_root, &"change_version", version + 1, version)
 		undo_redo.add_do_method(active_root, &"change_version", version, version + 1)
 	
-	undo_redo.force_fixed_history()
+	if not history_cleared.is_connected(active_root._on_history_cleared):
+		history_cleared.connect(active_root._on_history_cleared, CONNECT_ONE_SHOT)
 	
 	return true
 
 func commit(execute: bool = true) -> void:
 	undo_redo.commit_action(execute)
+
+func _on_history_changed() -> void:
+	for node in EditorInterface.get_open_scene_roots():
+		var id: int = undo_redo.get_object_history_id(node)
+		if undo_redo.get_history_undo_redo(id).get_history_count() == 0:
+			history_cleared.emit(id)
+	
+	if 0 == undo_redo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY).get_history_count():
+		history_cleared.emit(EditorUndoRedoManager.GLOBAL_HISTORY)
 
 #endregion UndoRedo
 

@@ -24,7 +24,7 @@ var path: String: set = set_path, get = get_path
 
 var name: String: set = set_name
 
-## Tracks if the tree is saved or not.
+## Tracks if the tree is saved or not. It is saved when set to [code]-1[/code].
 var saved_version: int = -1: set = set_saved_version
 
 func _init(_path: String = "", _root: RationalComponent = null) -> void:
@@ -113,13 +113,16 @@ func set_name(val: String) -> void:
 		changed.emit()
 
 func save_as(save_path: String) -> Error:
+	if not root:
+		return ERR_INVALID_DATA
+	
 	if not save_path:
 		return ERR_FILE_BAD_PATH
 	
 	if save_path == path:
 		return save()
 	
-	var root_copy: RationalComponent = duplicate_root()
+	var root_copy: RationalComponent = root.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL)
 	root_copy.take_over_path(save_path)
 	return ResourceSaver.save(root_copy, save_path, )
 
@@ -136,10 +139,11 @@ func save() -> Error:
 	elif is_builtin():
 		if not is_scene_open():
 			printerr("Built-in Resource %s is open while scene is closed." % self)
-		elif not ResourceLoader.exists(path, "Resource"):
-			err = ERR_FILE_BAD_PATH
+		#elif not ResourceLoader.exists(path):
+			#err = ERR_FILE_BAD_PATH
 		elif ResourceLoader.load(path, "Resource") != root:
-			err = ERR_ALREADY_EXISTS
+			err = ResourceSaver.save(root, "", )
+			ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 		else:
 			err = OK
 			
@@ -155,6 +159,7 @@ func save() -> Error:
 	match err:
 		OK:
 			update_saved_version_to_current()
+			path = root.resource_path
 			data_saved.emit()
 			print("Saved: %s" % self)
 		ERR_BUG:
@@ -255,8 +260,6 @@ func load_deferred() -> Error:
 	
 	return ERR_TIMEOUT
 
-
-
 func mark_scene_unsaved() -> void:
 	if not root.get_local_scene() or not root.get_local_scene().scene_file_path: return
 	var current_scene: String = EditorInterface.get_edited_scene_root().scene_file_path
@@ -273,9 +276,9 @@ func has_unsaved_changes() -> bool:
 # NOTE: Child components are not updated immediately in inspector.
 func set_saved_version(version: int) -> void:
 	saved_version = version
-	EditorInterface.set_object_edited(root, saved_version != -1)
-	print("Saved => %s" % is_saved())
+	EditorInterface.set_object_edited(root, has_unsaved_changes())
 	unsaved_changes_changed.emit()
+	#print("Saved => %s" % is_saved())
 
 ## Call when making changes to root.
 func change_version(old: int, new: int) -> void:
@@ -287,6 +290,17 @@ func change_version(old: int, new: int) -> void:
 
 func update_saved_version_to_current() -> void:
 	set_saved_version(-1)
+
+## Sets to [code]-1[/code] if saved else [code]-2[/code].
+func clear_save_version() -> void:
+	saved_version = -2 + int(saved_version == -1)
+
+func get_history_id() -> int:
+	return maxi(0, EditorInterface.get_editor_undo_redo().get_object_history_id(root.get_local_scene() if root.get_local_scene() else root))
+
+func _on_history_cleared(id: int) -> void:
+	if id != get_history_id(): return
+	clear_save_version()
 
 func _on_root_changed() -> void:
 	name = root.resource_name
@@ -319,11 +333,9 @@ func get_scene_file() -> String:
 
 ## Returns Resource ID in scene if root is built-in else returns [code]""[/code]
 func get_scene_id() -> String:
-	#root.resource_scene_unique_id
 	return get_path().get_slice("::", 1) if is_builtin() else ""
 
 func is_scene_open() -> bool:
-	assert(is_builtin(), "Cannot check scene for non-built-in Resource %s" % self)
 	return get_scene_file() in EditorInterface.get_open_scenes()
 
 ## Returns [code]true[/code] if Resource ID is found in scene file text.
@@ -334,11 +346,6 @@ func is_scene_subresource() -> bool:
 	if not FileAccess.file_exists(scene_file):
 		return false
 	return FileAccess.get_file_as_string(scene_file).contains(get_scene_id())
-
-func duplicate_root(deep_subresources_mode: Resource.DeepDuplicateMode = Resource.DEEP_DUPLICATE_INTERNAL) -> RationalComponent:
-	return root.duplicate_deep(deep_subresources_mode) if root else null
-
-
 
 func _to_string() -> String:
 	return "RootData: %s | Path %s" % [root, path]

@@ -31,6 +31,8 @@ func _on_edit_pressed(object: Object, property: String = "") -> void:
 func _on_picker_changed(res: Resource, editor_property: EditorProperty) -> void:
 	editor_property.emit_changed(editor_property.get_edited_property(), res)
 	if res:
+		if not res.resource_name:
+			res.resource_name = res.get_script().get_global_name()
 		cache.edit_root(res) 
 
 

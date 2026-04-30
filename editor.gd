@@ -43,6 +43,8 @@ func _run() -> void:
 	var undo_redo: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 	var ur: UndoRedo = undo_redo.get_history_undo_redo(undo_redo.GLOBAL_HISTORY)
 	var scene := EditorInterface.get_edited_scene_root()
+	var tree_1: RationalTree = scene.get_node(^"%RationalTree") if scene.scene_file_path == SCENE_PATH else null
+	var tree_2: RationalTree = scene.get_node(^"%RationalTree2") if scene.scene_file_path == SCENE_PATH else null
 	
 	var inspector_plugin: InpsectorPlugin = plugin.inspector_plugin
 	var cache: Cache = plugin.cache
@@ -61,18 +63,9 @@ func _run() -> void:
 	
 	var original: RationalComponent = ResourceLoader.load(PATH2)
 	var foo: RationalComponent = ResourceLoader.load(PATH2, "", ResourceLoader.CACHE_MODE_IGNORE)
+	tree_1.root.resource_path = ""
+	print(tree_1.root.get_local_scene(), tree_2.root.get_local_scene())
 	
-	print(ResourceLoader.exists(PATH2, "Image"))
-	
-	#printt(original.is_built_in(), foo.is_built_in(), Succeeder.new().is_built_in())
-	#printt(original == foo)
-	#printt(original.get_instance_id(), foo.get_instance_id())
-	#
-	#printt(original.resource_name, foo.resource_name)
-	#foo.resource_name = "YAHDKJFL"
-	#printt(original.resource_name, foo.resource_name)
-	#
-	#foo.get_child(1).resource_name = "Yaldeboth"
 
 func path_get_resource_type(path: String) -> String:
 	return EditorInterface.get_resource_filesystem().get_file_type(path) if FileAccess.file_exists(path) else ""
