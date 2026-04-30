@@ -3,9 +3,7 @@ extends RefCounted
 ## Manages [RationalComponent] roots and stores editor data.
 
 const FILENAME: String = "cache.cfg"
-
 const SECTION: String = "root_data_list"
-const KEY_ROOT_DATA: String = "roots"
 
 signal data_added(data: RootData)
 signal data_erased(data: RootData)
@@ -198,7 +196,9 @@ func save() -> void:
 		root_data.push_back(rd.serialize())
 	
 	var cfg: ConfigFile = ConfigFile.new()
-	cfg.set_value(SECTION, KEY_ROOT_DATA, root_data)
+	cfg.set_value(SECTION, "datetime", Time.get_datetime_string_from_system())
+	cfg.set_value(SECTION, "version", Engine.get_singleton(&"Rational").get_plugin_version())
+	cfg.set_value(SECTION, "roots", root_data)
 	var err:= cfg.save(get_save_path())
 	
 	if err == OK:
@@ -219,7 +219,7 @@ func load() -> void:
 	while fs.is_scanning():
 		await Engine.get_main_loop().process_frame
 	
-	for dict: Dictionary in cfg.get_value(SECTION, KEY_ROOT_DATA, []):
+	for dict: Dictionary in cfg.get_value(SECTION, "roots", []):
 		add_data(RootData.deserialize(dict))
 
 func save_data_as(data: RootData) -> void:

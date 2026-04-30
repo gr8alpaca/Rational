@@ -56,13 +56,26 @@ func _run() -> void:
 	var test_root: Composite = load("uid://dbllgp7c366kf")
 	
 	const PATH := "res://TestScene/test_scene_character.tscn::Resource_q1v5c"
+	const PATH2 := "res://TestScene/RationalObjects/guinea_pig.tres"
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	
-	tree_display.sync_selection()
-	add_user_signal("foo")
-	print(has_user_signal("foo"))
-	print(get("foo"))
+	var original: RationalComponent = ResourceLoader.load(PATH2)
+	var foo: RationalComponent = ResourceLoader.load(PATH2, "", ResourceLoader.CACHE_MODE_IGNORE)
+	
+	print(ResourceLoader.exists(PATH2, "Image"))
+	
+	#printt(original.is_built_in(), foo.is_built_in(), Succeeder.new().is_built_in())
+	#printt(original == foo)
+	#printt(original.get_instance_id(), foo.get_instance_id())
+	#
+	#printt(original.resource_name, foo.resource_name)
+	#foo.resource_name = "YAHDKJFL"
+	#printt(original.resource_name, foo.resource_name)
+	#
+	#foo.get_child(1).resource_name = "Yaldeboth"
 
+func path_get_resource_type(path: String) -> String:
+	return EditorInterface.get_resource_filesystem().get_file_type(path) if FileAccess.file_exists(path) else ""
 
 func get_property(name: StringName) -> Dictionary:
 	for dict in get_property_list():

@@ -2,8 +2,10 @@
 extends Tree
 
 const Util := preload("res://addons/rational/util.gd")
-
 const Selection:= preload("selection.gd")
+
+const ID_VISIBLE: int = 0
+const ID_INSTANCE: int = 0
 
 
 const META_VISIBLE: StringName = &"visible"
@@ -11,7 +13,6 @@ const META_VISIBLE: StringName = &"visible"
 const COLOR_HIDDEN: Color = Color.DIM_GRAY
 const COLOR_VISIBLE: Color = Color.WHITE
 
-signal menu_item_selected(menu_item: int)
 signal request_reparent(comp: RationalComponent,  current_parent: RationalComponent, target_parent: RationalComponent, index: int)
 
 @export var tree_filter_line_edit: LineEdit
@@ -24,8 +25,13 @@ var deselect_queued: bool = false
 
 var rename_shortcut: Shortcut = Util.get_shortcut(&"rename")
 
+func apply_theme() -> void:
+	tree_filter_line_edit.right_icon = get_theme_icon(&"Search", &"EditorIcons")
+
 func _ready() -> void:
-	tree_filter_line_edit.right_icon = Util.get_icon(&"Search", &"EditorIcons")
+	theme_changed.connect(apply_theme)
+	apply_theme()
+	
 	selection.selected_component.connect(_on_selected_component)
 	multi_selected.connect(_on_multi_selected)
 	button_clicked.connect(_on_button_clicked)
@@ -41,21 +47,11 @@ func rename() -> void:
 	edit_selected(true)
 
 func set_active_root(data: RootData) -> void:
-	if active_root == data: return
-	
-	if active_root:
-		active_root.tree_changed.disconnect(_on_root_tree_changed)
-	
 	active_root = data
-	
 	populate_tree()
-	
-	if active_root:
-		active_root.tree_changed.connect(_on_root_tree_changed)
 
-
-func _on_root_tree_changed() -> void:
-	populate_tree()
+func get_root_comp() -> RationalComponent:
+	return active_root.root if active_root else null
 
 func populate_tree() -> void:
 	var selected_comp: RationalComponent = get_selected().get_metadata(0) if get_selected() else null
@@ -68,7 +64,7 @@ func populate_tree() -> void:
 		active_root.loaded.connect(populate_tree, CONNECT_ONE_SHOT)
 		return
 	
-	add_component(active_root.root)
+	add_component(get_root_comp())
 	
 	sync_selection()
 	
@@ -84,30 +80,34 @@ func add_component(comp: RationalComponent, parent: TreeItem = null, index: int 
 	var item: TreeItem = create_item(parent, index)
 	item.set_metadata(0, comp)
 	item.set_icon(0, Util.comp_get_icon(comp))
-	item.add_button(0, get_visible_icon(true), -1, false, "Toggle Visibility")
+	item.add_button(0, get_visible_icon(true), ID_VISIBLE, false, "Toggle Visibility")
 	item.set_meta(META_VISIBLE, true)
 	item.set_text(0, comp.get_name())
 	item.set_tooltip_text(0, "%s\nType: %s" % [comp.resource_name, Util.comp_get_class(comp)])
+	item.set_editable(0, true)
 	
-	const SIGNAL_NAME: String = "changed"
-	item.add_user_signal(SIGNAL_NAME)
-	comp.changed.connect(item.emit_signal.bind(SIGNAL_NAME))
-	comp.script_changed.connect(item.emit_signal.bind(SIGNAL_NAME))
-	item.connect(SIGNAL_NAME, _on_item_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	if comp != active_root.root and not comp.is_built_in():
+		item.set_editable(0, false)
+		item.add_button(0, get_theme_icon(&"Instance", &"EditorIcons"), ID_INSTANCE, false, "")
+		return
 	
-	if comp is Composite:
-		item.add_user_signal("component_child_added", [{name = "child", type = TYPE_OBJECT}])
-		comp.child_added.connect(func (c: RationalComponent) -> void: item.emit_signal(&"component_child_added", c))
-		item.connect(&"component_child_added", _on_component_child_added, CONNECT_APPEND_SOURCE_OBJECT)
-		
-		item.add_user_signal("component_child_removed", [{name = "child", type = TYPE_OBJECT}])
-		comp.child_added.connect(func (c: RationalComponent) -> void: item.emit_signal(&"component_child_removed", c))
-		item.connect(&"component_child_removed", _on_component_child_removed, CONNECT_APPEND_SOURCE_OBJECT)
+	item.add_user_signal("changed")
+	comp.changed.connect(item.emit_signal.bind(&"changed"))
+	item.connect(&"changed", _on_item_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	
+	item.add_user_signal("comp_script_changed") 
+	comp.script_changed.connect(item.emit_signal.bind(&"comp_script_changed"), CONNECT_DEFERRED)
+	item.connect(&"comp_script_changed", _on_item_script_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	
+	item.add_user_signal("children_changed")
+	comp.children_changed.connect(item.emit_signal.bind(&"children_changed"))
+	item.connect(&"children_changed", _on_item_children_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	
+	
 	
 	for child: RationalComponent in comp.get_children():
 		if not child: continue
 		add_component(child, item)
-
 
 func item_apply_filter(item: TreeItem, filter_text: String) -> bool:
 	var any_child_visible: bool = false
@@ -161,15 +161,22 @@ func _on_filter_text_changed(new_text: String) -> void:
 func _on_item_changed(item: TreeItem) -> void:
 	item.set_text(0, item.get_metadata(0).resource_name)
 
-func _on_component_child_added(child: RationalComponent, item: TreeItem) -> void:
-	add_component(child, item, item_get_comp(item).get_child_index(child))
+func _on_item_script_changed(item: TreeItem) -> void:
+	item.set_icon(0, Util.comp_get_icon(item_get_comp(item)))
 
-func _on_component_child_removed(child: RationalComponent, item: TreeItem) -> void:
-	var child_item: TreeItem = comp_get_item(child)
-	if not child_item: return
-	item.remove_child(child_item)
+func _on_item_children_changed(item: TreeItem) -> void:
+	var comp: RationalComponent = item_get_comp(item)
+	for child: TreeItem in item.get_children():
+		item.remove_child(child)
+		child.free()
+	
+	for child: RationalComponent in comp.get_children():
+		add_component(child, item)
 
 func _on_button_clicked(item: TreeItem, column: int, id: int, mouse_button_index: int) -> void:
+	if id == ID_INSTANCE:
+		pass
+		return
 	item_set_visible(item, item.get_button(column,id) == get_theme_icon(&"GuiVisibilityHidden", &"EditorIcons"))
 
 func get_visible_icon(item_visible: bool) -> Texture2D:
@@ -241,6 +248,11 @@ func filter_children(items: Array[TreeItem]) -> Array[TreeItem]:
 
 #region Drag&Drop
 
+func item_can_parent(item: TreeItem) -> bool:
+	var comp: RationalComponent = item_get_comp(item)
+	return comp and comp is Composite and not (comp != get_root_comp())
+	return item and item_get_comp(item) is Composite
+
 func move_items(to_position: Vector2, items: Array[TreeItem]) -> void:
 	var item: TreeItem = get_item_at_position(to_position)
 	if not item:
@@ -266,13 +278,14 @@ func move_items(to_position: Vector2, items: Array[TreeItem]) -> void:
 		return
 	
 	for comp: RationalComponent in top_components:
-		request_reparent.emit(comp, active_root.root.find_parent(comp), target_parent, index)
+		request_reparent.emit(comp, get_root_comp().find_parent(comp), target_parent, index)
 
 
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	if data is Dictionary:
 		match data.get("type", ""):
 			"items" when data.get("source") == self:
+				var item: TreeItem = get_item_at_position(at_position)
 				drop_mode_flags = DROP_MODE_INBETWEEN | DROP_MODE_ON_ITEM
 				return true
 	return false
@@ -306,7 +319,7 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 	
 	return {type = "items", items = selected_items, components = selected_components, source = self}
 
-#endregion 
+#endregion
 
 #region Iterator
 
@@ -340,8 +353,8 @@ func _on_multi_selected(item: TreeItem, column: int, selected: bool) -> void:
 ## Removes all selected components not child to the root.
 func deselect_orphan_components() -> void:
 	if not active_root: return
-	var tree_components: Array[RationalComponent] = active_root.root.get_children(true)
-	tree_components.push_back(active_root.root)
+	var tree_components: Array[RationalComponent] = get_root_comp().get_children(true)
+	tree_components.push_back(get_root_comp())
 	for comp: RationalComponent in selection.get_selected_components():
 		if comp in tree_components: continue
 		selection.remove_component(comp)

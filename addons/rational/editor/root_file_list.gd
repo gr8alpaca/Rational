@@ -4,6 +4,8 @@ extends Tree
 const Util := preload("../util.gd")
 
 const Cache := preload("../data/cache.gd")
+const ID_MOVE_UP: int = 1001
+const ID_MOVE_DOWN: int = 1002
 
 signal request_toggle_files_panel
 
@@ -13,29 +15,17 @@ signal request_toggle_files_panel
 
 @export var popup: PopupMenu
 
-var cache: Cache
-
-var recently_closed: Array[RootData]
-
-var shortcuts: Dictionary[Shortcut, Callable]
-
+var cache: Cache = Util.get_cache()
 
 func apply_theme() -> void:
-	filter_line_edit.right_icon = Util.get_icon(&"Search")
+	filter_line_edit.right_icon = get_theme_icon(&"Search", &"EditorIcons")
 
 func _ready() -> void:
-	filter_line_edit.right_icon = Util.get_icon(&"Search", &"EditorIcons")
-	
-	cache = Util.get_cache()
 	theme_changed.connect(apply_theme)
+	apply_theme()
 	
+	popup.index_pressed.connect(_on_popup_menu_index_pressed)
 	init_popup()
-	
-	await cache.load()
-	
-	init_shortcuts()
-	
-	build_list()
 	
 	filter_line_edit.text_changed.connect(_on_filter_text_changed)
 	
@@ -48,10 +38,14 @@ func _ready() -> void:
 	cache.data_added.connect(add_data)
 	cache.data_erased.connect(erase_data)
 	cache.edited_tree_changed.connect(_on_edited_tree_changed)
+	
+	build_list()
 
 func _on_item_mouse_selected(mouse_position: Vector2, mouse_button_index: int) -> void:
 	if mouse_button_index == MOUSE_BUTTON_RIGHT:
-		
+		var item: TreeItem = get_item_at_position(mouse_position)
+		popup.set_item_disabled(popup.get_item_index(ID_MOVE_UP), item.get_prev() == null)
+		popup.set_item_disabled(popup.get_item_index(ID_MOVE_DOWN), item.get_next() == null)
 		popup.popup(Rect2(get_screen_position() + mouse_position, Vector2.ZERO))
 
 func build_list() -> void:
@@ -59,7 +53,6 @@ func build_list() -> void:
 	create_item()
 	for data: RootData in cache.get_data_list():
 		add_data(data)
-	
 
 func has_root(root: RationalComponent) -> bool:
 	return root_get_item(root) != null
@@ -120,7 +113,8 @@ func add_data(data: RootData) -> void:
 	if data == cache.get_edited_tree():
 		item.select(0)
 		ensure_cursor_is_visible()
-
+	
+	sort_files()
 
 func add_root(root: RationalComponent, force_path: String = "") -> void:
 	if not root: return
@@ -264,42 +258,17 @@ func init_popup() -> void:
 	Util.add_menu_item(popup, "Copy UID", &"", &"copy_uid", copy_uid)
 	Util.add_menu_item(popup, "Show in FileSystem", &"", &"show_in_file_system", show_in_file_system)
 	popup.add_separator("")
-	Util.add_menu_item(popup, "Move Up", &"", &"move_file_up", move_up)
-	Util.add_menu_item(popup, "Move Down", &"", &"move_file_down", move_down)
+	Util.add_menu_item(popup, "Move Up", &"", &"move_file_up", move_up, ID_MOVE_UP)
+	Util.add_menu_item(popup, "Move Down", &"", &"move_file_down", move_down, ID_MOVE_DOWN)
 	Util.add_menu_item(popup, "Sort", &"", &"sort", sort_files)
 	Util.add_menu_item(popup, "Toggle Panel", &"", &"toggle_files_panel", toggle_files_panel)
 
-func init_shortcuts() -> void:
-	shortcuts[Util.get_shortcut(&"save")] = save_selected
-	shortcuts[Util.get_shortcut(&"save_as")] = save_selected_as
-	shortcuts[Util.get_shortcut(&"rename")] = edit_selected.bind(true)
-	shortcuts[Util.get_shortcut(&"close")] = close_selected
-	shortcuts[Util.get_shortcut(&"close_others")] = close_unselected
-	shortcuts[Util.get_shortcut(&"close_below")] = close_below_selected
-	shortcuts[Util.get_shortcut(&"close_all")] = close_all
-	shortcuts[Util.get_shortcut(&"copy_path")] = copy_path
-	shortcuts[Util.get_shortcut(&"copy_uid")] = copy_uid
-	shortcuts[Util.get_shortcut(&"move_file_up")] = move_up
-	shortcuts[Util.get_shortcut(&"move_file_down")] = move_down
-	shortcuts[Util.get_shortcut(&"sort")] = sort_files
-	# Don't need toggle bc main will catch it.
-	shortcuts.erase(null)
 
 func _gui_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo(): return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
 		close_item(get_item_at_position(event.position))
 		accept_event()
-
-func _shortcut_input(event: InputEvent) -> void:
-	if not event.is_pressed() or event.is_echo() or not has_focus(): return
-	
-	for sc: Shortcut in shortcuts:
-		if sc.matches_event(event):
-			#print("Has Focus: %s" % has_focus())
-			accept_event()
-			shortcuts[sc].call()
-			return
 
 func _on_popup_menu_index_pressed(index: int) -> void:
 	popup.get_item_metadata(index).call()

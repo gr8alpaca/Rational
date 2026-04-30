@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bf5yfufeku4t4" path="res://addons/rational/components/rational_component.gd" id="1_5l7se"]
 [ext_resource type="Script" uid="uid://b084a27qrwlfn" path="res://addons/rational/components/sequence.gd" id="2_gcn5t"]
+[ext_resource type="Resource" uid="uid://cincrbrw3hw1y" path="res://TestScene/RationalObjects/fallback_tree.tres" id="2_id7as"]
 [ext_resource type="Script" uid="uid://dslcu3blcrgyx" path="res://addons/rational/components/decorators/succeeder.gd" id="3_gcn5t"]
 [ext_resource type="Script" uid="uid://cugqq0rl38kp7" path="res://addons/rational/components/fallback.gd" id="3_id7as"]
 [ext_resource type="Script" uid="uid://lp2l3w30rxd3" path="res://addons/rational/components/decorators/failer.gd" id="4_1br5i"]
@@ -9,19 +10,28 @@
 [sub_resource type="Resource" id="Resource_1br5i"]
 resource_name = "Succeeder"
 script = ExtResource("2_gcn5t")
+children = Array[ExtResource("1_5l7se")]([ExtResource("2_id7as")])
 
 [sub_resource type="Resource" id="Resource_rdohn"]
 resource_name = "Succeeder"
 script = ExtResource("2_gcn5t")
 
+[sub_resource type="Resource" id="Resource_5l7se"]
+resource_name = "Sequence"
+script = ExtResource("2_gcn5t")
+
 [sub_resource type="Resource" id="Resource_4xbec"]
 resource_name = "Succeeder"
 script = ExtResource("2_gcn5t")
-children = Array[ExtResource("1_5l7se")]([SubResource("Resource_1br5i"), SubResource("Resource_rdohn")])
+children = Array[ExtResource("1_5l7se")]([SubResource("Resource_1br5i"), SubResource("Resource_rdohn"), SubResource("Resource_5l7se")])
 
 [sub_resource type="Resource" id="Resource_ae1rl"]
 resource_name = "Failer"
 script = ExtResource("4_1br5i")
+
+[sub_resource type="Resource" id="Resource_2up2k"]
+resource_name = "Succeeder"
+script = ExtResource("3_gcn5t")
 
 [sub_resource type="Resource" id="Resource_gcn5t"]
 resource_name = "Failer"
@@ -31,18 +41,10 @@ script = ExtResource("4_1br5i")
 resource_name = "Succeeder"
 script = ExtResource("3_gcn5t")
 
-[sub_resource type="Resource" id="Resource_5l7se"]
-resource_name = "Sequence"
-script = ExtResource("2_gcn5t")
-
-[sub_resource type="Resource" id="Resource_2up2k"]
-resource_name = "Succeeder"
-script = ExtResource("3_gcn5t")
-
 [sub_resource type="Resource" id="Resource_mdvq7"]
 resource_name = "Sequence"
 script = ExtResource("2_gcn5t")
-children = Array[ExtResource("1_5l7se")]([SubResource("Resource_gcn5t"), SubResource("Resource_id7as"), SubResource("Resource_5l7se"), SubResource("Resource_2up2k")])
+children = Array[ExtResource("1_5l7se")]([SubResource("Resource_2up2k"), SubResource("Resource_gcn5t"), SubResource("Resource_id7as")])
 
 [resource]
 resource_name = "Yerp"

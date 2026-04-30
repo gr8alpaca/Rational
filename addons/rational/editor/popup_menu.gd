@@ -68,7 +68,7 @@ enum {
 	ITEM_SHOW_IN_EDITOR = 524288,
 	
 	## Arrange all ancestors of selected component.
-	ITEM_ARRANGE_SUBTREE = 1048576,
+	ITEM_ARRANGE_CHILDREN = 1048576,
 
 	## ITEM_CUT | ITEM_COPY | ITEM_DUPLICATE | ITEM_RENAME | ITEM_CHANGE_TYPE | ITEM_DOCUMENTATION | ITEM_DELETE
 	ITEMS_DEFAULT = 886,
@@ -149,9 +149,9 @@ func set_menu_options(options: int = ITEM_NONE) -> void:
 		add_separator("")
 		create_item("Show in Editor", &"ShowInFileSystem", &"show_in_file_system", ITEM_SHOW_IN_EDITOR)
 	
-	if options & ITEM_ARRANGE_SUBTREE:
+	if options & ITEM_ARRANGE_CHILDREN:
 		add_separator("")
-		create_item("Arrange Subtree", &"GridLayout", &"", ITEM_ARRANGE_SUBTREE)
+		create_item("Arrange Subtree", &"GridLayout", &"", ITEM_ARRANGE_CHILDREN)
 	
 	if options & ITEM_DOCUMENTATION:
 		add_separator("")

@@ -194,6 +194,7 @@ func serialize() -> Dictionary:
 	return {
 		path = path,
 		root = root.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL),
+		datetime = Time.get_datetime_string_from_system(),
 		}
 
 static func deserialize(data: Dictionary) -> RootData:

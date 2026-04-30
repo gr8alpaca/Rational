@@ -50,14 +50,12 @@ func get_selected_components() -> Array[RationalComponent]:
 
 ## Returns only parents—No children.
 func get_top_selected_components() -> Array[RationalComponent]:
-	var components: Array[RationalComponent] = get_selected_components()
-	var i: int = components.size()
-	while 0 < i:
-		i -= 1
-		for c: RationalComponent in components:
-			if not c.has_child(components[i], true): continue
-			components.remove_at(i)
-			break
+	return filter_children(get_selected_components())
+
+## NOTE: Also filters null values.
+func filter_children(components: Array[RationalComponent]) -> Array[RationalComponent]:
+	components.assign(components.filter(is_instance_valid).filter(func(comp: RationalComponent) -> bool: 
+			return not components.any(func (c: RationalComponent) -> bool: return c.has_child(comp))))
 	return components
 
 func _get_key() -> RootData:

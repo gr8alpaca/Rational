@@ -47,7 +47,8 @@ func _ready() -> void:
 	
 	visibility_changed.connect(_on_visibility_changed)
 	_on_visibility_changed()
-
+	
+	cache.load()
 
 func save_as(data: RootData) -> void:
 	if not data: return
