@@ -61,10 +61,14 @@ func _run() -> void:
 	const PATH2 := "res://TestScene/RationalObjects/guinea_pig.tres"
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	
-	var original: RationalComponent = ResourceLoader.load(PATH2)
-	var foo: RationalComponent = ResourceLoader.load(PATH2, "", ResourceLoader.CACHE_MODE_IGNORE)
-	tree_1.root.resource_path = ""
-	print(tree_1.root.get_local_scene(), tree_2.root.get_local_scene())
+	
+	#var item:= tree_display.get_root()
+	#item.add_button(0, Util.get_icon())
+	#tree_display.get_root().set_button_disabled(0, 0, false)
+	#var original: RationalComponent = ResourceLoader.load(PATH2)
+	#var foo: RationalComponent = ResourceLoader.load(PATH2, "", ResourceLoader.CACHE_MODE_IGNORE)
+	#tree_1.root.resource_path = ""
+	#print(tree_1.root.get_local_scene(), tree_2.root.get_local_scene())
 	
 
 func path_get_resource_type(path: String) -> String:

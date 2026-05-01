@@ -1,12 +1,11 @@
-## [Leaf] that returns SUCCESS or FAILURE depending on
-## a single condition. [ConditionLeaf] should never return `RUNNING`.
+## [Leaf] that returns SUCCESS if its expression evaluates
+## to [code]true[/code] and [code]false[/code] otherwise.
 @tool
-@icon("../icons/ConditionLeaf.svg")
-class_name ConditionLeaf extends Leaf
+class_name ConditionExpression extends ConditionLeaf
 
 ## Expression that will return [code]SUCCESS[/code] if true
 ## and [code]FAILURE[/code] if false. Executes expression using [member RationalTree.actor]
-## and a reference to the blackboard as [code]board[/code].
+## as the base instance and a reference to the blackboard as [code]board[/code].
 @export_custom(PROPERTY_HINT_EXPRESSION, "") 
 var condition: String = "": set = set_condition, get = get_condition
 
@@ -19,14 +18,9 @@ var expression_valid: bool = false
 func set_condition(value: String) -> void:
 	condition = value
 	
-	# May need to skip/limit in editor.
-	expression = Expression.new()
-	var error: int = expression.parse(condition, PackedStringArray(["board"]))
-	if not Engine.is_editor_hint() and error != OK:
+	expression_valid = expression.parse(condition, PackedStringArray(["board"])) == OK
+	if not expression_valid and not Engine.is_editor_hint():
 		push_error("Couldn't parse condition `%s`: %s" % [condition, expression.get_error_text()])
-	expression_valid = error == OK
-	
-	changed.emit()
 
 func get_condition() -> String:
 	return condition
@@ -43,8 +37,7 @@ func _tick(delta: float, board: Blackboard, actor: Node) -> int:
 	if expression.has_execute_failed():
 		return FAILURE
 	
+	#if not result:
+		#print("%s Condition Failed" % resource_name)
+	
 	return SUCCESS if result else FAILURE
-
-
-#func _get_configuration_warnings() -> PackedStringArray:
-	#return PackedStringArray(["Expression invalid"]) if not expression_valid else PackedStringArray()

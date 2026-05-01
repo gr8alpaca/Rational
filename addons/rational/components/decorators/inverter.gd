@@ -9,6 +9,7 @@ func _no_tick(delta: float, board: Blackboard, actor: Node) -> int:
 
 func _tick(delta: float, board: Blackboard, actor: Node) -> int:
 	if children.is_empty(): 
+		print("Inverter has no children: %s" % resource_name)
 		return SUCCESS
 	
 	match children[0].tick(delta, board, actor):

@@ -14,12 +14,15 @@
 [ext_resource type="Script" uid="uid://davp5u2xw823n" path="res://addons/rational/components/rational_tree.gd" id="12_m8cgi"]
 [ext_resource type="Script" uid="uid://6ug5fa63l34w" path="res://addons/rational/components/blackboard.gd" id="13_6m14f"]
 [ext_resource type="Texture2D" uid="uid://c6xt30y0jeyie" path="res://TestScene/Debug.svg" id="14_4x1kh"]
+[ext_resource type="Script" uid="uid://dc6staqfmnb7u" path="res://addons/rational/components/leaves/blackboard_has.gd" id="14_leic3"]
 [ext_resource type="Script" uid="uid://bf5yfufeku4t4" path="res://addons/rational/components/rational_component.gd" id="14_s7iw1"]
-[ext_resource type="Script" uid="uid://lp2l3w30rxd3" path="res://addons/rational/components/decorators/failer.gd" id="15_f0c8p"]
+[ext_resource type="Script" uid="uid://1ug81784y0yo" path="res://addons/rational/components/leaves/blackboard_set.gd" id="15_mg37k"]
 [ext_resource type="Script" uid="uid://b084a27qrwlfn" path="res://addons/rational/components/sequence.gd" id="16_f0c8p"]
 [ext_resource type="Script" uid="uid://dslcu3blcrgyx" path="res://addons/rational/components/decorators/succeeder.gd" id="17_8sece"]
+[ext_resource type="Script" uid="uid://nluwfj1jnkvo" path="res://addons/rational/components/leaves/condition_expression.gd" id="17_q1v5c"]
+[ext_resource type="Script" uid="uid://bwdobsxt3tlmo" path="res://TestScene/RationalObjects/move.gd" id="19_4t32f"]
 [ext_resource type="Script" uid="uid://msgesjor62tm" path="res://TestScene/player.gd" id="19_f0c8p"]
-[ext_resource type="PackedScene" uid="uid://bfg7r1vfbkb13" path="res://TestScene/subscene.tscn" id="20_f0c8p"]
+[ext_resource type="Script" uid="uid://dq5d3qx2jtck3" path="res://addons/rational/components/decorators/inverter.gd" id="19_mg37k"]
 [ext_resource type="Script" uid="uid://cugqq0rl38kp7" path="res://addons/rational/components/fallback.gd" id="20_leic3"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_0cnec"]
@@ -79,13 +82,72 @@ animations = [{
 }]
 
 [sub_resource type="Resource" id="Resource_4t32f"]
-resource_name = "Failer"
-script = ExtResource("15_f0c8p")
+resource_name = "HasArea"
+script = ExtResource("14_leic3")
+key = "area"
+
+[sub_resource type="Resource" id="Resource_c3hlo"]
+resource_name = "BlackboardSetArea"
+script = ExtResource("15_mg37k")
+key = "area"
+use_expression = true
+value = null
+value_expression = "get_node(\"Area2D\")"
+
+[sub_resource type="Resource" id="Resource_wh884"]
+resource_name = "Set Area2D"
+script = ExtResource("20_leic3")
+children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_4t32f"), SubResource("Resource_c3hlo")])
+
+[sub_resource type="Resource" id="Resource_i7w4y"]
+resource_name = "HasPlayer"
+script = ExtResource("14_leic3")
+key = "player"
+
+[sub_resource type="Resource" id="Resource_uq5so"]
+resource_name = "SetPlayer"
+script = ExtResource("15_mg37k")
+key = "player"
+use_expression = true
+value = null
+value_expression = "self.get_parent().get_node(\"Player\")"
+
+[sub_resource type="Resource" id="Resource_k0gel"]
+resource_name = "Set Player"
+script = ExtResource("20_leic3")
+children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_i7w4y"), SubResource("Resource_uq5so")])
+
+[sub_resource type="Resource" id="Resource_5y2e1"]
+resource_name = "PlayerInArea"
+script = ExtResource("17_q1v5c")
+condition = "board.get_local(\"area\").get_overlapping_bodies().has(board.get_local(\"player\"))"
+
+[sub_resource type="Resource" id="Resource_u7hrl"]
+resource_name = "BlackboardSetTargetGlobalPosition"
+script = ExtResource("15_mg37k")
+key = "target_global_position"
+use_expression = true
+value = null
+value_expression = "board.get_local(\"player\").global_position"
+
+[sub_resource type="Resource" id="Resource_xvw0u"]
+resource_name = "Inverter"
+script = ExtResource("19_mg37k")
+children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_u7hrl")])
+
+[sub_resource type="Resource" id="Resource_18x2g"]
+resource_name = "MoveAction"
+script = ExtResource("19_4t32f")
+
+[sub_resource type="Resource" id="Resource_xeqm5"]
+resource_name = "Move To Player"
+script = ExtResource("20_leic3")
+children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_5y2e1"), SubResource("Resource_xvw0u"), SubResource("Resource_18x2g")])
 
 [sub_resource type="Resource" id="Resource_xa1ah"]
-resource_name = "Sequence"
+resource_name = "Root"
 script = ExtResource("16_f0c8p")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_4t32f")])
+children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_wh884"), SubResource("Resource_k0gel"), SubResource("Resource_xeqm5")])
 metadata/_custom_type_script = "uid://b084a27qrwlfn"
 
 [sub_resource type="Resource" id="Resource_8sece"]
@@ -139,6 +201,7 @@ root = SubResource("Resource_xa1ah")
 root_id = "Resource_xa1ah"
 actor = NodePath("..")
 blackboard = SubResource("Resource_8sece")
+disabled = false
 
 [node name="Area2D" type="Area2D" parent="Actor" unique_id=1482673747]
 
@@ -201,5 +264,3 @@ root_node = NodePath("../..")
 root_node = NodePath("../..")
 tree_root = SubResource("AnimationNodeStateMachine_wh884")
 anim_player = NodePath("../AnimationPlayer")
-
-[node name="Node2D" parent="." unique_id=1306368396 instance=ExtResource("20_f0c8p")]

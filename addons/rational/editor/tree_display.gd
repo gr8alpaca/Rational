@@ -5,10 +5,10 @@ const Util := preload("res://addons/rational/util.gd")
 const Selection:= preload("selection.gd")
 
 const ID_VISIBLE: int = 0
-const ID_INSTANCE: int = 0
-
+const ID_INSTANCE: int = 1
 
 const META_VISIBLE: StringName = &"visible"
+const META_INSTANCE: StringName = &"instance"
 
 const COLOR_HIDDEN: Color = Color.DIM_GRAY
 const COLOR_VISIBLE: Color = Color.WHITE
@@ -23,8 +23,6 @@ var active_root: RootData: set = set_active_root
 
 var deselect_queued: bool = false
 
-var rename_shortcut: Shortcut = Util.get_shortcut(&"rename")
-
 func apply_theme() -> void:
 	tree_filter_line_edit.right_icon = get_theme_icon(&"Search", &"EditorIcons")
 
@@ -38,13 +36,8 @@ func _ready() -> void:
 	
 	tree_filter_line_edit.text_changed.connect(_on_filter_text_changed)
 
-func _gui_input(event: InputEvent) -> void:
-	if event.is_pressed() and not event.is_echo() and rename_shortcut.matches_event(event):
-		accept_event()
-		rename()
-
 func rename() -> void:
-	edit_selected(true)
+	edit_selected(false)
 
 func set_active_root(data: RootData) -> void:
 	active_root = data
@@ -72,7 +65,23 @@ func populate_tree() -> void:
 	if item:
 		set_selected(item, 0)
 		ensure_cursor_is_visible()
+
+func item_is_instanced(item: TreeItem) -> bool:
+	return item and item.get_meta(META_INSTANCE, false)
+
+func item_set_instanced(item: TreeItem, instanced: bool) -> void:
+	item.set_meta(META_INSTANCE, instanced)
+	item.set_editable(0, not instanced)
+	if (instanced and item.get_button_by_id(0, ID_INSTANCE) == -1) or (not instanced and item.get_button_by_id(0, ID_INSTANCE) != -1):
+		update_item_buttons(item)
+
+func update_item_buttons(item: TreeItem) -> void:
+	item.clear_buttons()
+	if item_is_instanced(item):
+		item.add_button(0, get_theme_icon(&"Instance", &"EditorIcons"), ID_INSTANCE, false, "Open Tree")
 	
+	item.add_button(0, get_visible_icon(item_is_visible(item)), ID_VISIBLE, false, "Toggle Visibility")
+	item.set_button_color(0, item.get_button_by_id(0, ID_VISIBLE), COLOR_VISIBLE if item_visible_in_tree(item) else COLOR_HIDDEN)
 
 
 func add_component(comp: RationalComponent, parent: TreeItem = null, index: int = -1) -> void:
@@ -80,15 +89,17 @@ func add_component(comp: RationalComponent, parent: TreeItem = null, index: int 
 	var item: TreeItem = create_item(parent, index)
 	item.set_metadata(0, comp)
 	item.set_icon(0, Util.comp_get_icon(comp))
-	item.add_button(0, get_visible_icon(true), ID_VISIBLE, false, "Toggle Visibility")
+	
+	item.set_meta(META_INSTANCE, comp != get_root_comp() and not comp.is_built_in())
+	item.set_editable(0, not item.get_meta(META_INSTANCE, false))
+	
 	item.set_meta(META_VISIBLE, true)
 	item.set_text(0, comp.get_name())
 	item.set_tooltip_text(0, "%s\nType: %s" % [comp.resource_name, Util.comp_get_class(comp)])
-	item.set_editable(0, true)
 	
-	if comp != active_root.root and not comp.is_built_in():
-		item.set_editable(0, false)
-		item.add_button(0, get_theme_icon(&"Instance", &"EditorIcons"), ID_INSTANCE, false, "")
+	update_item_buttons(item)
+	
+	if item_is_instanced(item):
 		return
 	
 	item.add_user_signal("changed")
@@ -174,10 +185,13 @@ func _on_item_children_changed(item: TreeItem) -> void:
 		add_component(child, item)
 
 func _on_button_clicked(item: TreeItem, column: int, id: int, mouse_button_index: int) -> void:
-	if id == ID_INSTANCE:
-		pass
-		return
-	item_set_visible(item, item.get_button(column,id) == get_theme_icon(&"GuiVisibilityHidden", &"EditorIcons"))
+	match id:
+		ID_INSTANCE:
+			var comp: RationalComponent = item_get_comp(item)
+			if mouse_button_index == MOUSE_BUTTON_LEFT and comp:
+				Util.get_cache().edit_file(comp.resource_path)
+		ID_VISIBLE:
+			item_set_visible(item, !item_is_visible(item))
 
 func get_visible_icon(item_visible: bool) -> Texture2D:
 	return get_theme_icon(&"GuiVisibilityVisible", &"EditorIcons") if item_visible else get_theme_icon(&"GuiVisibilityHidden", &"EditorIcons")
@@ -190,19 +204,15 @@ func get_all_selected_items() -> Array[TreeItem]:
 		item = get_next_selected(item)
 	return selected_items
 
-
 func sync_selection() -> void:
 	for item: TreeItem in self:
 		item_set_selected(item, selection.is_selected(item.get_metadata(0)))
 
-
 func comp_get_item(comp: RationalComponent) -> TreeItem:
 	if not comp: return null
-	var item: TreeItem = get_root()
-	while item:
-		if item.get_metadata(0) == comp:
+	for item: TreeItem in self:
+		if item.get_metadata(0) == comp: 
 			return item
-		item = item.get_next_in_tree(false)
 	return null
 
 func get_selected_comp() -> RationalComponent:
@@ -245,33 +255,34 @@ func filter_children(items: Array[TreeItem]) -> Array[TreeItem]:
 			result.remove_at(i)
 	return result
 
+	
+
+func item_can_parent(item: TreeItem) -> bool:
+	return item and not item_is_instanced(item) and item_get_comp(item) is Composite
 
 #region Drag&Drop
 
-func item_can_parent(item: TreeItem) -> bool:
-	var comp: RationalComponent = item_get_comp(item)
-	return comp and comp is Composite and not (comp != get_root_comp())
-	return item and item_get_comp(item) is Composite
+func get_drop_parent(at_position: Vector2) -> TreeItem:
+	var item: TreeItem = get_item_at_position(at_position)
+	if item:
+		match get_drop_section_at_position(at_position):
+			-1:
+				item = item.get_parent()
+			1:
+				item = item.get_next_in_tree().get_parent() if item.get_next_in_tree() else item.get_parent()
+	return item
 
 func move_items(to_position: Vector2, items: Array[TreeItem]) -> void:
-	var item: TreeItem = get_item_at_position(to_position)
-	if not item:
+	var item: TreeItem = get_drop_parent(to_position)
+	if not item or not item_can_parent(item):
 		return
 	
 	var index: int = get_drop_section_at_position(to_position)
-	if index != 0:
-		index = item.get_index() + maxi(0, index)
-		item = item.get_parent()
-	else:
-		index = -1
-	
+	index = (item.get_index() + maxi(0, index)) if index != 0 else -1
 	var target_parent: RationalComponent = item_get_comp(item)
-	if not target_parent or not target_parent is Composite:
-		return
-	
 	var top_components: Array[RationalComponent] = selection.get_top_selected_components()
 	
-	if target_parent in top_components:
+	if target_parent in top_components or (target_parent is Decorator and 1 < top_components.size()):
 		return
 	
 	if 1 < top_components.size() and target_parent is Decorator:
@@ -285,9 +296,8 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	if data is Dictionary:
 		match data.get("type", ""):
 			"items" when data.get("source") == self:
-				var item: TreeItem = get_item_at_position(at_position)
 				drop_mode_flags = DROP_MODE_INBETWEEN | DROP_MODE_ON_ITEM
-				return true
+				return item_can_parent(get_drop_parent(at_position))
 	return false
 
 func _drop_data(at_position: Vector2, data: Variant) -> void:
@@ -298,6 +308,7 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 
 # { "type": "files", "files": ["res://BitMap.tres"], "from": @Tree@5673:<Tree#495833867875> }
 func _get_drag_data(at_position: Vector2) -> Variant:
+	if not get_root() or get_root().is_selected(0): return
 	var selected_items: Array[TreeItem] = get_all_selected_items()
 	
 	if selected_items.is_empty():

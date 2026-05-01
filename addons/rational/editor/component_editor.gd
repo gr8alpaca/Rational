@@ -31,7 +31,7 @@ func update_display(comp: Object) -> void:
 
 # changing refers to whether the EditorProperty itself needs to be changed, not anything to do with the value.
 func _on_property_edited(property: StringName, value: Variant, field: StringName, changing: bool, ep: EditorProperty) -> void:
-	#printt("Property Edited...", property, changing, ep.get_edited_object(), ep.get_edited_object().get(property), value)
+	#printt("Property Edited...", property, changing, ep.get_edited_object(), ep.get_edited_object().get(property), value, block_property_signal)
 	if block_property_signal or not property or not ep.get_edited_object() or ep.get_edited_object().get(property) == value: return
 	
 	# CHAD PROGRAMMER ALERT
@@ -41,9 +41,11 @@ func _on_property_edited(property: StringName, value: Variant, field: StringName
 	if not graph_edit.create_action("Set %s" % property, UndoRedo.MERGE_ENDS, graph_edit.comp_in_tree(comp)):
 		return
 	
-	undo_redo.add_undo_method(self, &"set_component_property", comp, property, comp.get(property))
-	undo_redo.add_do_method(self, &"set_component_property", comp, property, value)
-	graph_edit.commit(false)
+	undo_redo.add_undo_property(comp, property, comp.get(property))
+	undo_redo.add_do_property(comp, property, value)
+	#undo_redo.add_undo_method(self, &"set_component_property", comp, property, comp.get(property))
+	#undo_redo.add_do_method(self, &"set_component_property", comp, property, value)
+	graph_edit.commit()
 
 func _on_property_list_changed(comp: RationalComponent) -> void:
 	update_display(comp)
@@ -52,6 +54,7 @@ func set_component_property(comp: RationalComponent, property: StringName, value
 	if not comp: return
 	
 	comp.set(property, value)
+	#print("Set %s => %s" % [property, value])
 	
 	for ep: EditorProperty in get_editor_properties():
 		if ep.get_edited_property() != property: continue
@@ -65,7 +68,7 @@ func has_focus_recursive(node: Node) -> bool:
 	
 	if node is Control and node.has_focus():
 		return true
-		
+	
 	for child in node.get_children(true):
 		if has_focus_recursive(child):
 			return true
@@ -82,7 +85,7 @@ func get_editor_properties() -> Array[EditorProperty]:
 func clear() -> void:
 	for ep: EditorProperty in get_editor_properties():
 		remove_child(ep)
-		ep.free()
+		ep.queue_free()
 
 func disconnect_signals() -> void:
 	for con: Dictionary in get_incoming_connections():

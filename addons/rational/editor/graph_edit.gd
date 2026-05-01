@@ -606,7 +606,7 @@ func _on_connection_request(from_node: StringName, from_port: int, to_node: Stri
 
 func comp_reparent(comp: RationalComponent,  current_parent: RationalComponent, target_parent: RationalComponent, index: int = -1) -> void:
 	if not comp or (not current_parent and not target_parent): return
-	var is_changed: bool = comp_in_tree(current_parent) or comp_in_tree(target_parent)
+	var is_changed: bool = comp_in_tree(current_parent) or comp_in_tree(target_parent) or comp_in_tree(comp)
 	
 	if not create_action("Reparent Component(s)", UndoRedo.MERGE_ALL, is_changed):
 		return

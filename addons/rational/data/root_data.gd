@@ -93,13 +93,11 @@ func get_path() -> String:
 func set_path(val: String) -> void:
 	if path == val: return
 	path = val
-	#if not get_meta(&"_loading", false):
-		#if root and root.resource_path != path:
-			#root.take_over_path(path)
 	changed.emit()
 
 func clear_path() -> void:
-	print("Clearing path for %s" % self)
+	if OS.is_stdout_verbose():
+		print("Clearing path %s" % self)
 	if root:
 		root.resource_path = ""
 	else:
@@ -141,6 +139,7 @@ func save() -> Error:
 			printerr("Built-in Resource %s is open while scene is closed." % self)
 		#elif not ResourceLoader.exists(path):
 			#err = ERR_FILE_BAD_PATH
+			# Removed because if resource not saved in scene will throw this error.
 		elif ResourceLoader.load(path, "Resource") != root:
 			err = ResourceSaver.save(root, "", )
 			ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
@@ -161,7 +160,8 @@ func save() -> Error:
 			update_saved_version_to_current()
 			path = root.resource_path
 			data_saved.emit()
-			print("Saved: %s" % self)
+			if OS.is_stdout_verbose():
+				print("Saved %s" % self)
 		ERR_BUG:
 			printerr("BUGGED => RootData did not return true for any of is_temp, is_external, is_builtin.")
 		ERR_ALREADY_EXISTS:
@@ -348,4 +348,4 @@ func is_scene_subresource() -> bool:
 	return FileAccess.get_file_as_string(scene_file).contains(get_scene_id())
 
 func _to_string() -> String:
-	return "RootData: %s | Path %s" % [root, path]
+	return ("RootData: %s" % root) if root else ("RootData: %s" % path)

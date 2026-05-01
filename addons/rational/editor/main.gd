@@ -108,6 +108,8 @@ func init_shortcuts() -> void:
 	shortcuts[float_shortcut] = make_floating_button.set_pressed.bind(true)
 	make_floating_button.tooltip_text = "Make the Rational tree editor floating. " + (" (%s)" % float_shortcut.get_as_text() if float_shortcut else "")
 	
+	shortcuts[Util.get_shortcut(&"rename")] = rename
+	
 	# GraphEditor
 	shortcuts[Util.get_shortcut(&"toggle_grid")] = graph_edit.toggle_grid
 	shortcuts[Util.get_shortcut(&"use_grid_snap")] = graph_edit.toggle_snap
@@ -120,14 +122,12 @@ func init_shortcuts() -> void:
 	for percent_str: String in ["3.125", "6.25", "12.5", "25", "50", "100", "200", "400"]:
 		shortcuts[Util.get_shortcut("zoom_%s_percent" % percent_str)] = graph_edit.set_zoom.bind(float(percent_str.to_float())/100.0)
 	
-	shortcuts[Util.get_shortcut(&"rename")] = graph_edit.rename
 	shortcuts[Util.get_shortcut(&"change_type")] = graph_edit.change_type
 	shortcuts[Util.get_shortcut(&"save_as_root")] = graph_edit.save_as_root
 	
 	# File List
 	shortcuts[Util.get_shortcut(&"save")] = root_file_tree.save_selected
 	shortcuts[Util.get_shortcut(&"save_as")] = root_file_tree.save_selected_as
-	shortcuts[Util.get_shortcut(&"rename")] = root_file_tree.edit_selected.bind(true)
 	shortcuts[Util.get_shortcut(&"close")] = root_file_tree.close_selected
 	shortcuts[Util.get_shortcut(&"close_others")] = root_file_tree.close_unselected
 	shortcuts[Util.get_shortcut(&"close_below")] = root_file_tree.close_below_selected
@@ -141,7 +141,6 @@ func init_shortcuts() -> void:
 	# Erase any null objects
 	shortcuts.erase(null)
 
-
 func _shortcut_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo(): return
 	for sc: Shortcut in shortcuts:
@@ -152,11 +151,18 @@ func _shortcut_input(event: InputEvent) -> void:
 		shortcuts[sc].call()
 		return
 
+func rename() -> void:
+	if root_file_tree.has_focus():
+		root_file_tree.edit_selected(true)
+	elif tree_display.has_focus():
+		tree_display.rename()
+	else:
+		graph_edit.rename()
 
 func toggle_file_panel() -> void:
 	tree_panel.visible = !tree_panel.visible
 	panel_collapse_button.icon = get_theme_icon(&"Back" if tree_panel.visible else &"Forward", &"EditorIcons") 
-
+	
 
 func apply_theme() -> void:
 	panel_collapse_button.icon = get_theme_icon(&"Back" if tree_panel.visible else &"Forward", &"EditorIcons")

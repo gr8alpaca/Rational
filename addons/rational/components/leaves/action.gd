@@ -2,7 +2,7 @@
 ## Their execution can run across multiple frame executions in which should 
 ## return [member RUNNING] until the action is completed.
 @tool
-@icon("../icons/ActionLeaf.svg")
+@icon("../../icons/ActionLeaf.svg")
 class_name ActionLeaf extends Leaf
 
 ## Override this method to customize behavior when not receiving a tick.

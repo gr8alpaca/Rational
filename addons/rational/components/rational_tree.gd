@@ -22,9 +22,11 @@ var root_id: String:
 
 @export var disabled: bool = true: set = set_disabled
 
-
 func _ready() -> void:
-	if not Engine.is_editor_hint(): return
+	if not Engine.is_editor_hint(): 
+		blackboard.set_value("actor", actor)
+		root.print_tree_pretty()
+		return
 	set_process(false)
 	if not actor:
 		actor = get_parent()

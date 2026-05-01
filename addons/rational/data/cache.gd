@@ -43,8 +43,6 @@ func set_edited_tree(val: RootData) -> void:
 	if edited_tree:
 		edited_tree.request_edit.emit()
 
-
-
 func edit_tree(tree_data: RootData) -> void:
 	if not tree_data: return
 	set_edited_tree(tree_data)
@@ -59,6 +57,10 @@ func edit_root(root: RationalComponent) -> void:
 func edit_rational_tree(tree: RationalTree) -> void:
 	if not tree: return
 	edit_root(tree.root)
+
+func edit_file(path: String) -> void:
+	if not FileAccess.file_exists(path): return
+	edit_root(ResourceLoader.load(path))
 
 func _init() -> void:
 	EditorInterface.get_file_system_dock().files_moved.connect(_on_file_moved)
