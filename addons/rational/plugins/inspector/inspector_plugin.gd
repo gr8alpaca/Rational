@@ -18,7 +18,6 @@ func _parse_property(object: Object, type: Variant.Type, name: String, hint_type
 		var button: Button = create_button()
 		button.pressed.connect(_on_edit_pressed.bind(object, name))
 		
-		
 		var picker:= create_picker(object, name, "Composite")
 		
 		return true
@@ -33,7 +32,7 @@ func _on_picker_changed(res: Resource, editor_property: EditorProperty) -> void:
 	if res:
 		if not res.resource_name:
 			res.resource_name = res.get_script().get_global_name()
-		cache.edit_root(res) 
+		cache.edit_root(res)
 
 
 func _on_picker_selected(resource: Resource, inspect: bool, editor_property: EditorProperty) -> void:

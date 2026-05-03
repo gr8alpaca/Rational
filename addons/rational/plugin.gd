@@ -26,7 +26,7 @@ var editor: Editor
 
 func _enter_tree() -> void:
 	resource_saved.connect(_on_resource_saved)
-	#scene_saved.connect(_on_scene_saved)
+	scene_saved.connect(_on_scene_saved)
 	get_script_create_dialog().script_created.connect(_on_script_created)
 	
 	Settings.populate()
@@ -42,6 +42,7 @@ func _enter_tree() -> void:
 	window_wrapper = WindowWrapper.new()
 	
 	editor = preload("editor/main.tscn").instantiate()
+	editor.ready.connect(editor.propagate_call.bind(&"init_editor"), CONNECT_ONE_SHOT)
 	
 	EditorInterface.get_editor_main_screen().add_child(window_wrapper)
 	
@@ -66,11 +67,9 @@ func _handles(object: Object) -> bool:
 	return object is RationalTree and EditorInterface.get_inspector().get_edited_object() != object
 
 func _edit(object: Object) -> void:
-	if cache and object and editor:
-		editor.edit_tree(object)
-	
+	editor.edit_tree(object)
 	if EditorInterface.get_inspector().get_edited_object() != object:
-		EditorInterface.inspect_object(object, "", true)
+		EditorInterface.inspect_object.call_deferred(object, "", true)
 
 func _make_visible(visible: bool) -> void:
 	window_wrapper.make_visible(visible)
@@ -89,6 +88,9 @@ func _save_external_data() -> void:
 
 func _get_unsaved_status(for_scene: String) -> String:
 	return cache.get_unsaved_status(for_scene)
+
+func _build() -> bool:
+	return true
 
 func _apply_changes() -> void:
 	#print("Apply Changes...")
@@ -124,5 +126,7 @@ func _on_script_created(script: Script) -> void:
 	print("New script is tool: %s" % script.is_tool())
 	print("New script contains '@tool': %s" % script.source_code.containsn("@tool"))
 
+func _on_scene_saved(filepath: String) -> void:
+	print("Scene saved: %s" % filepath)
 
 #endregion Signal Methods 

@@ -39,15 +39,15 @@ func _init() -> void:
 	
 	theme_changed.connect(apply_theme)
 
-func _ready() -> void:
+func init_editor() -> void:
+	if not is_node_ready():
+		ready.connect(init_editor, CONNECT_ONE_SHOT)
 	cache.request_save_as.connect(save_as)
 	panel_collapse_button.pressed.connect(toggle_file_panel)
 	root_file_tree.request_toggle_files_panel.connect(toggle_file_panel)
 	init_shortcuts()
-	
 	visibility_changed.connect(_on_visibility_changed)
 	_on_visibility_changed()
-	
 	cache.load()
 
 func save_as(data: RootData) -> void:

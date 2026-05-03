@@ -1,6 +1,6 @@
+## Manages [RationalComponent] roots and stores editor data.
 @tool
 extends RefCounted
-## Manages [RationalComponent] roots and stores editor data.
 
 const FILENAME: String = "cache.cfg"
 const SECTION: String = "root_data_list"
@@ -23,6 +23,9 @@ var class_icons: Dictionary[StringName, Texture2D]
 var root_data_list: Array[RootData]
 
 var edited_tree: RootData: set = set_edited_tree, get = get_edited_tree
+
+func get_edited_id() -> int:
+	return edited_tree.id if edited_tree else -1
 
 func get_edited_tree() -> RootData:
 	return edited_tree
@@ -62,6 +65,9 @@ func edit_file(path: String) -> void:
 	if not FileAccess.file_exists(path): return
 	edit_root(ResourceLoader.load(path))
 
+func edit_id(id: int) -> void:
+	edit_tree(get_id(id))
+
 func _init() -> void:
 	EditorInterface.get_file_system_dock().files_moved.connect(_on_file_moved)
 	EditorInterface.get_file_system_dock().resource_removed.connect(_on_resource_removed)
@@ -69,7 +75,7 @@ func _init() -> void:
 
 func _on_scene_closed(filepath: String) -> void:
 	for rd: RootData in get_data_list():
-		if not rd.get_path().containsn(filepath): continue
+		if not rd.path.containsn(filepath): continue
 		erase_data(rd)
 
 #region Paths/Roots
@@ -103,6 +109,15 @@ func has_root(root: RationalComponent) -> bool:
 
 func has_root_or_path(root: RationalComponent, path: String) -> bool:
 	return get_data(root, path) != null
+
+func get_id(id: int) -> RootData:
+	for data: RootData in get_data_list():
+		if data.id == id:
+			return data
+	return null
+
+func has_id(id: int) -> bool:
+	return get_id(id) != null
 
 func add_data(root_data: RootData) -> void:
 	if not root_data or has_data(root_data): return
@@ -138,7 +153,6 @@ func erase_data(data: RootData) -> void:
 	if data.has_unsaved_changes() and data.is_external():
 		data.save()
 	
-	
 	data_erased.emit(data)
 
 func erase_path(path: String) -> void:
@@ -154,7 +168,6 @@ func _on_file_moved(from: String, to: String) -> void:
 		return
 	data.path = to
 
-
 #endregion Paths/Roots
 
 func _on_resource_removed(res: Resource) -> void:
@@ -164,25 +177,18 @@ func _on_resource_removed(res: Resource) -> void:
 func _on_data_request_edit(data: RootData) -> void:
 	edit_tree(data)
 
-
 #region Save/Load
 
 func get_save_path(file: String = FILENAME) -> String:
 	return get_script().resource_path.get_base_dir().path_join(file)
 
 func get_unsaved_status(scene_path: String) -> String:
-	#var autosave: bool = Util.get_setting("autosave", true)
-	#
-	#if not autosave:
-		#return "ERROR BUG: Autosave set to false."
-	
 	for rd: RootData in get_data_list():
-		if not scene_path or rd.path.contains(scene_path): 
-			rd.save()
+		if scene_path and rd.path.contains(scene_path): 
+			rd.closed.emit()
 	
 	if not scene_path:
 		save()
-	
 	
 	return ""
 

@@ -15,15 +15,15 @@ signal request_toggle_files_panel
 
 @export var popup: PopupMenu
 
-var cache: Cache = Util.get_cache()
+var cache: Cache
+
+func _init() -> void:
+	theme_changed.connect(apply_theme)
 
 func apply_theme() -> void:
 	filter_line_edit.right_icon = get_theme_icon(&"Search", &"EditorIcons")
 
-func _ready() -> void:
-	theme_changed.connect(apply_theme)
-	apply_theme()
-	
+func init_editor() -> void:
 	popup.index_pressed.connect(_on_popup_menu_index_pressed)
 	init_popup()
 	
@@ -35,6 +35,7 @@ func _ready() -> void:
 	item_edited.connect(_on_item_edited)
 	item_mouse_selected.connect(_on_item_mouse_selected)
 	
+	cache = Util.get_cache()
 	cache.data_added.connect(add_data)
 	cache.data_erased.connect(erase_data)
 	cache.edited_tree_changed.connect(_on_edited_tree_changed)
@@ -106,9 +107,9 @@ func add_data(data: RootData) -> void:
 	item.set_metadata(0, data)
 	update_item(item)
 	
-	data.changed.connect(_on_data_changed.bind(data))
-	data.unsaved_changes_changed.connect(_on_unsaved_changes_changed.bind(data))
-	data.closed.connect(_on_data_closed.bind(data))
+	data.changed.connect(_on_data_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	data.unsaved_changes_changed.connect(_on_unsaved_changes_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	data.closed.connect(_on_data_closed, CONNECT_APPEND_SOURCE_OBJECT)
 	
 	if data == cache.get_edited_tree():
 		item.select(0)

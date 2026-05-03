@@ -36,40 +36,88 @@ const RationalGraphNode = preload("uid://vsth43p1vl5f")
 
 func _run() -> void:
 	print("Running...")
-	if not Engine.has_singleton(&"Rational"): return
+	#if not Engine.has_singleton(&"Rational"): return
 	var editor_settings: EditorSettings = EditorInterface.get_editor_settings()
-	var plugin: RationalPlugin = Engine.get_singleton(&"Rational")
+	var plugin: RationalPlugin = Engine.get_singleton(&"Rational") if Engine.has_singleton(&"Rational") else null
 	var inspector := EditorInterface.get_inspector()
 	var undo_redo: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 	var ur: UndoRedo = undo_redo.get_history_undo_redo(undo_redo.GLOBAL_HISTORY)
 	var scene := EditorInterface.get_edited_scene_root()
-	var tree_1: RationalTree = scene.get_node(^"%RationalTree") if scene.scene_file_path == SCENE_PATH else null
-	var tree_2: RationalTree = scene.get_node(^"%RationalTree2") if scene.scene_file_path == SCENE_PATH else null
+	var tree_1: RationalTree = scene.get_node(^"%RationalTree") if scene and scene.scene_file_path == SCENE_PATH else null
+	var tree_2: RationalTree = scene.get_node(^"%RationalTree2") if scene and scene.scene_file_path == SCENE_PATH else null
 	
-	var inspector_plugin: InpsectorPlugin = plugin.inspector_plugin
-	var cache: Cache = plugin.cache
-	var class_data: ClassData = plugin.class_data
-	var selection: Selection = plugin.selection
-	
-	var main: Main = plugin.editor
-	var root_file_tree: RootFileList = main.root_file_tree
-	var tree_display: TreeDisplay = main.tree_display
-	var graph_edit: GraphEditor = main.graph_edit
-	var test_root: Composite = load("uid://dbllgp7c366kf")
+	#var inspector_plugin: InpsectorPlugin = plugin.inspector_plugin
+	#var cache: Cache = plugin.cache
+	#var class_data: ClassData = plugin.class_data
+	#var selection: Selection = plugin.selection
+	#
+	#var main: Main = plugin.editor
+	#var root_file_tree: RootFileList = main.root_file_tree
+	#var tree_display: TreeDisplay = main.tree_display
+	#var graph_edit: GraphEditor = main.graph_edit
+	#var test_root: Composite = load("uid://dbllgp7c366kf")
 	
 	const PATH := "res://TestScene/test_scene_character.tscn::Resource_q1v5c"
 	const PATH2 := "res://TestScene/RationalObjects/guinea_pig.tres"
+	const PATH_SCENE := "res://TestScene/test_scene_character.tscn"
+	const PATH_ROOT := "res://TestScene/test_scene_character.tscn::Resource_xa1ah"
+	
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	
+	#print(selection._data)
+	##print_cache(cache)
+	#return
 	
-	#var item:= tree_display.get_root()
-	#item.add_button(0, Util.get_icon())
-	#tree_display.get_root().set_button_disabled(0, 0, false)
-	#var original: RationalComponent = ResourceLoader.load(PATH2)
-	#var foo: RationalComponent = ResourceLoader.load(PATH2, "", ResourceLoader.CACHE_MODE_IGNORE)
-	#tree_1.root.resource_path = ""
-	#print(tree_1.root.get_local_scene(), tree_2.root.get_local_scene())
+	print(ResourceLoader.has_cached(PATH_SCENE))
+	var packed:= ResourceLoader.load(PATH_SCENE, "", ResourceLoader.CACHE_MODE_REPLACE)
+	var root: Composite 
+	#root = ResourceLoader.load(PATH_ROOT, "", ResourceLoader.CACHE_MODE_REPLACE)
+	for r in get_roots_in_scene(packed):
+		r.print_tree_pretty()
+	print(ResourceLoader.exists(PATH_ROOT), ResourceLoader.has_cached(PATH_ROOT))
+	if ResourceLoader.has_cached(PATH_ROOT):
+		
+		root = ResourceLoader.get_cached_ref(PATH_ROOT)
+		print(root.get_local_scene())
+		root.print_tree_pretty()
+		#var data: RootData
+		##root.get_signal_list()
+		#for sig_dict in root.get_signal_list():
+			#for con in root.get_signal_connection_list(sig_dict.name):
+				#if con.callable.get_object() is RootData:
+					#data = con.callable.get_object()
+				#
+				#printt(con.signal.get_name(), con.callable.get_object(), con.callable.get_method())
+				#con.signal.disconnect(con.callable)
+		
+		print("Root: %d" % [root.get_reference_count()])
+		
+		#data.root = null
+		#for sig_name in data.get_signal_list():
+			#for dict in data.get_signal_connection_list(sig_name.name):
+				#printt(dict.signal.get_name(), dict.callable.get_object(), dict.callable.get_method())
+				#dict.signal.disconnect(dict.callable)
+		#
+		#data.closed
+			#print(sig.get_name())
+				#print("\t %s => %s" % [con.callable.get_object(), con.callable.get_method()])
 	
+	
+		#for con in root.get_incoming_connections():
+			#print()
+		#print(root.get_incoming_connections())
+		
+
+
+func get_roots_in_scene(scene: PackedScene) -> Array[RationalComponent]:
+	var result: Array[RationalComponent]
+	var state: SceneState = scene.get_state()
+	for i in state.get_node_count():
+		for j in state.get_node_property_count(i):
+			if state.get_node_property_value(i, j) is RationalComponent:
+				result.push_back(state.get_node_property_value(i, j)) 
+	
+	return result
 
 func path_get_resource_type(path: String) -> String:
 	return EditorInterface.get_resource_filesystem().get_file_type(path) if FileAccess.file_exists(path) else ""
@@ -84,7 +132,9 @@ func print_shortcuts() -> void:
 	print("\n".join(EditorInterface.get_editor_settings().get_shortcut_list()))
 
 func print_cache(c: Cache) -> void:
-	printt("Paths:\n —", "\n —".join(c.path_list))
+	for data in c.get_data_list():
+		print(data)
+	#printt("Paths:\n —", "\n —".join(c.get_data_list()))
 
 
 func write_file(text: String, path: String = "res://temp.txt") -> void:

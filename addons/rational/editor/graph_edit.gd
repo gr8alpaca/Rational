@@ -18,7 +18,7 @@ const DUPLICATE_OFFSET: Vector2 = Vector2(25.0, 25.0)
 const SIBLING_DISTANCE_MIN: float = 32.0
 #const PARENT_DISTANCE_MIN: float = 240.0
 
-signal history_cleared
+signal history_cleared(id: int)
 
 @export var popup: CreatePopup
 @export var tree_display: TreeDisplay
@@ -53,9 +53,9 @@ var dragging_node: bool = false
 
 var reset_dragged_nodes: bool = false
 
-var cache: RefCounted = Util.get_cache()
-var selection: Selection = Util.get_selection()
-var undo_redo: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
+var cache: RefCounted
+var selection: Selection
+var undo_redo: EditorUndoRedoManager
 
 ## Node selected with right click when creating a menu.
 var selected_node: RationalGraphNode
@@ -65,11 +65,7 @@ var is_tree_display_menu_active: bool = false
 
 var clipboard: Array[RationalComponent]
 
-func _ready() -> void:
-	selection.selected_component.connect(_on_selected_component)
-	cache.edited_tree_changed.connect(set_active_root)
-	cache
-	
+func _init() -> void:
 	custom_minimum_size = Vector2(200, 200) * EditorInterface.get_editor_scale()
 	
 	var arrange_button: Button = get_menu_hbox().get_child(-1).duplicate(0) as Button
@@ -77,11 +73,28 @@ func _ready() -> void:
 	arrange_button.show()
 	get_menu_hbox().add_child(arrange_button)
 	
-	layout_button = get_menu_hbox().get_child(-1).duplicate(0)
+	layout_button = get_menu_hbox().get_child(-1).duplicate(0) as Button
 	layout_button.show()
 	update_layout_button()
 	get_menu_hbox().add_child(layout_button)
 	layout_button.pressed.connect(toggle_layout)
+	
+	menu = Menu.new()
+	add_child(menu, false, Node.INTERNAL_MODE_FRONT)
+
+
+func init_editor() -> void:
+	if not is_node_ready():
+		ready.connect(init_editor, CONNECT_ONE_SHOT)
+	
+	cache = Util.get_cache()
+	selection = Util.get_selection()
+	undo_redo = EditorInterface.get_editor_undo_redo()
+	
+	
+	
+	selection.selected_component.connect(_on_selected_component)
+	cache.edited_tree_changed.connect(set_active_root)
 	
 	child_entered_tree.connect(_on_child_entered_tree)
 	child_exiting_tree.connect(_on_child_exiting_tree)
@@ -105,8 +118,6 @@ func _ready() -> void:
 	
 	popup_request.connect(_on_popup_request)
 	
-	menu = Menu.new()
-	add_child(menu, false, Node.INTERNAL_MODE_FRONT)
 	menu.id_pressed.connect(_on_menu_id_pressed)
 	menu.popup_hide.connect(clear_selected_node, CONNECT_DEFERRED)
 	
@@ -116,8 +127,10 @@ func _ready() -> void:
 	
 	undo_redo.history_changed.connect(_on_history_changed)
 
-func _exit_tree() -> void:
-	undo_redo.clear_history(EditorUndoRedoManager.GLOBAL_HISTORY)
+
+
+#func _exit_tree() -> void:
+	#undo_redo.clear_history(EditorUndoRedoManager.GLOBAL_HISTORY)
 
 func _on_child_entered_tree(node: Node) -> void:
 	if node is RationalGraphNode: 
@@ -603,6 +616,10 @@ func _on_connection_request(from_node: StringName, from_port: int, to_node: Stri
 	
 	comp_reparent(to.component, current_parent_comp, from.component, index)
 
+func undo_redo_mark_changed(object: Object) -> void:
+	if EditorInterface.is_object_edited(object): return
+	undo_redo.add_undo_method(EditorInterface, &"set_object_edited", object, false)
+	undo_redo.add_do_method(EditorInterface, &"set_object_edited", object, true)
 
 func comp_reparent(comp: RationalComponent,  current_parent: RationalComponent, target_parent: RationalComponent, index: int = -1) -> void:
 	if not comp or (not current_parent and not target_parent): return
@@ -619,9 +636,12 @@ func comp_reparent(comp: RationalComponent,  current_parent: RationalComponent, 
 	if current_parent:
 		undo_redo.add_undo_method(current_parent, &"add_child", comp, current_parent.get_child_index(comp))
 		undo_redo.add_do_method(current_parent, &"remove_child", comp)
+		undo_redo_mark_changed(current_parent)
 	
 	if target_parent:
 		undo_redo.add_do_method(target_parent, &"add_child", comp, index)
+		undo_redo_mark_changed(target_parent)
+	
 	
 	commit()
 
@@ -1151,7 +1171,7 @@ func _gui_input(event: InputEvent) -> void:
 		match event.keycode:
 			
 			KEY_R:
-				printt(Rect2(scroll_offset/zoom, size/zoom))
+				printt(get_root_component())
 			
 			KEY_T:
 				active_root.root.print_tree_pretty()

@@ -23,6 +23,8 @@ var root_id: String:
 @export var disabled: bool = true: set = set_disabled
 
 func _ready() -> void:
+	if root:
+		root.set_meta(&"tree", "%%%s" % name)
 	if not Engine.is_editor_hint(): 
 		blackboard.set_value("actor", actor)
 		root.print_tree_pretty()
@@ -52,6 +54,8 @@ func call_tree(method: StringName, args: Array = []) -> void:
 
 func set_root(val: RationalComponent) -> void:
 	root = val
+	if root:
+		root.set_meta(&"tree", "%%%s" % name)
 
 
 func set_disabled(val: bool) -> void:
@@ -64,3 +68,11 @@ func set_disabled(val: bool) -> void:
 		tree_disabled.emit()
 	else:
 		tree_enabled.emit()
+
+#func _notification(what: int) -> void:
+	#if not Engine.is_editor_hint(): return
+	#match what:
+		#NOTIFICATION_EDITOR_PRE_SAVE:
+			#if root: root.set_meta(&"tree", null)
+		#NOTIFICATION_EDITOR_POST_SAVE:
+			#if root: root.set_meta(&"tree", "%%%s" % name)

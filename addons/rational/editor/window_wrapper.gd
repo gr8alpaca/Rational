@@ -37,9 +37,7 @@ func _init() -> void:
 	
 	window.add_child(panel)
 	
-	
 	window.close_requested.connect(close_window)
-
 
 func _ready() -> void:
 	window.size = size

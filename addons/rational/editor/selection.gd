@@ -42,6 +42,7 @@ func _get_selected() -> Array[RationalComponent]:
 	if not _get_key() in _data:
 		var arr: Array[RationalComponent]
 		_data[_get_key()] = arr
+		
 	return _data[_get_key()]
 
 ## Returns a duplicated array of selected components.

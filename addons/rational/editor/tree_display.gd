@@ -17,7 +17,7 @@ signal request_reparent(comp: RationalComponent,  current_parent: RationalCompon
 
 @export var tree_filter_line_edit: LineEdit
 
-var selection: Selection = Util.get_selection()
+var selection: Selection
 
 var active_root: RootData: set = set_active_root
 
@@ -25,11 +25,12 @@ var deselect_queued: bool = false
 
 func apply_theme() -> void:
 	tree_filter_line_edit.right_icon = get_theme_icon(&"Search", &"EditorIcons")
-
-func _ready() -> void:
-	theme_changed.connect(apply_theme)
-	apply_theme()
 	
+func _init() -> void:
+	theme_changed.connect(apply_theme)
+
+func init_editor() -> void:
+	selection = Util.get_selection()
 	selection.selected_component.connect(_on_selected_component)
 	multi_selected.connect(_on_multi_selected)
 	button_clicked.connect(_on_button_clicked)
