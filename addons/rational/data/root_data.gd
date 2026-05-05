@@ -19,8 +19,6 @@ signal closed
 
 signal unsaved_changes_changed
 
-signal data_saved
-
 signal loaded
 
 var id: int = -1
@@ -34,8 +32,8 @@ var name: String: set = set_name
 ## Tracks if the tree is saved or not. It is saved when set to [code]-1[/code].
 var saved_version: int = -1: set = set_saved_version
 
-func _init(_path: String = "", _root: RationalComponent = null) -> void:
-	id = RootData.generate_id()
+func _init(_path: String = "", _root: RationalComponent = null, _id: int = RootData.generate_id()) -> void:
+	id = _id - int(_id == 0) # Prevents id == 0
 	set_meta(&"_loading", true)
 	# Must set path before root. 
 	path = _path if _path or not _root else _root.resource_path
@@ -48,7 +46,7 @@ func edit() -> void:
 	request_edit.emit()
 
 func is_root(_root: RationalComponent) -> bool:
-	return _root and ((path and _root.resource_path == path) or root == _root) 
+	return _root and root == _root
 
 
 func is_path(_path: String) -> bool:
@@ -58,10 +56,8 @@ func is_path(_path: String) -> bool:
 func is_root_or_path(_root: RationalComponent, _path: String) -> bool:
 	return is_root(_root) or is_path(_path)
 
-
 func can_save() -> bool:
 	return path != ""
-
 
 func get_root_class() -> String:
 	return root.get_script().get_global_name() if root else ""
@@ -77,22 +73,19 @@ func get_root() -> RationalComponent:
 func set_root(val: RationalComponent) -> void:
 		if root == val: return
 		
-		for con: Dictionary in get_incoming_connections():
-			var obj: Object = con.signal.get_object()
-			if obj is RationalComponent:
-				con.signal.disconnect(con.callable)
+		if root:
+			root.changed.disconnect(_on_root_changed)
+			root.script_changed.disconnect(_on_root_script_changed)
+			root.tree_changed.disconnect(_on_tree_changed)
 		
 		root = val
-		set_block_signals(true)
 		
-		if val:
-			root = val
+		if root:
+			name = root.resource_name
 			root.changed.connect(_on_root_changed)
 			root.script_changed.connect(_on_root_script_changed)
 			root.tree_changed.connect(_on_tree_changed)
-			name = root.resource_name
 		
-		set_block_signals(false)
 		changed.emit()
 
 func set_path(val: String) -> void:
@@ -105,8 +98,7 @@ func clear_path() -> void:
 		print("Clearing path %s" % self)
 	if root:
 		root.resource_path = ""
-	else:
-		set_path("")
+	set_path("")
 
 func set_name(val: String) -> void:
 		if name == val: return
@@ -136,12 +128,15 @@ func save() -> Error:
 	
 	var err: int = ERR_BUG
 	
-	if is_temp():
-		err = ERR_UNCONFIGURED
+	if root.is_built_in():
+		err = OK
 	
-	elif is_builtin():
-		if not is_scene_open():
-			printerr("Built-in Resource %s is open while scene is closed." % self)
+	#elif is_temp():
+		#err = ERR_UNCONFIGURED
+	
+	#elif is_builtin():
+		#if not is_scene_open():
+			#printerr("Built-in Resource %s is open while scene is closed." % self)
 		#elif not ResourceLoader.exists(path):
 			#err = ERR_FILE_BAD_PATH
 			# Removed because if resource not saved in scene will throw this error.
@@ -149,23 +144,23 @@ func save() -> Error:
 			#err = ResourceSaver.save(root, "", )
 			#EditorInterface.save_all_scenes()
 			#ResourceLoader.load.call_deferred(get_scene_file(), "", ResourceLoader.CACHE_MODE_REPLACE)
-		else:
-			err = OK
+		#else:
+			#root.take_over_path(path)
+			#err = OK
 			
 	
-	elif not is_save_path_valid(path):
+	elif not path.get_file().is_valid_filename() or not DirAccess.dir_exists_absolute(path.get_base_dir()):
 		err = ERR_FILE_BAD_PATH
 	
 	else:
-		if root.resource_path != path:
-			root.take_over_path(path)
-		err = ResourceSaver.save(root, path)
+		#if root.resource_path != path:
+			#root.take_over_path(path)
+		err = ResourceSaver.save(root, path, ResourceSaver.FLAG_CHANGE_PATH)
 	
 	match err:
 		OK:
-			update_saved_version_to_current()
+			clear_version()
 			path = root.resource_path
-			data_saved.emit()
 			if OS.is_stdout_verbose():
 				print("Saved %s" % self)
 		ERR_BUG:
@@ -182,25 +177,6 @@ func save() -> Error:
 func is_save_path_valid(save_path: String) -> bool:
 	return path.get_file().is_valid_filename() and DirAccess.dir_exists_absolute(path.get_base_dir())
 
-## Clears/Modifies path/root if needed. Call after filesystem is loaded.
-func validate_path() -> void:
-	if is_temp() or ResourceLoader.exists(path, "Resource"):
-		return
-	
-	if is_builtin():
-		if is_scene_subresource():
-			return
-		printerr("RootData '%s' not found in scene '%s'" % [name, get_scene_file()])
-	
-	elif root and is_save_path_valid(path):
-		root.take_over_path(path)
-		ResourceSaver.save(root, path)
-		return
-	
-	printerr("Invalid RootData path: %s. Clearing..." % path)
-	clear_path()
-
-
 func serialize() -> Dictionary:
 	return {
 		id = id,
@@ -215,9 +191,9 @@ static func deserialize(data: Dictionary) -> RootData:
 	return RootData.new(data_path, data_root)
 
 func load_path() -> void:
-	validate_path()
 	
 	if not path or (root and path == root.resource_path):
+		update_reference()
 		set_meta(&"_loading", null)
 		loaded.emit()
 		return
@@ -235,7 +211,7 @@ func load_path() -> void:
 		ERR_TIMEOUT:
 			if is_builtin() and not is_scene_open():
 				push_warning("Timeout trying to load '%s'. Closing..." % self)
-				closed.emit()
+				close()
 			else:
 				push_warning("Timeout trying to load '%s'. Closing..." % self)
 				clear_path()
@@ -267,47 +243,63 @@ func load_deferred() -> Error:
 	
 	return ERR_TIMEOUT
 
-#func mark_scene_unsaved() -> void:
-	#if not root.get_local_scene() or not root.get_local_scene().scene_file_path: return
-	#var current_scene: String = EditorInterface.get_edited_scene_root().scene_file_path
-	#EditorInterface.open_scene_from_path(root.get_local_scene().scene_file_path)
-	#EditorInterface.mark_scene_as_unsaved()
-	#EditorInterface.open_scene_from_path.call_deferred(current_scene)
+func save_local_scene() -> void:
+	if not get_local_scene(): return
+	if not is_part_of_edited_scene(): 
+		EditorInterface.open_scene_from_path
+		return
+	var current_scene: String = EditorInterface.get_edited_scene_root().scene_file_path
+	EditorInterface.open_scene_from_path(root.get_local_scene().scene_file_path)
+	EditorInterface.mark_scene_as_unsaved()
+	EditorInterface.open_scene_from_path.call_deferred(current_scene)
+
+## Changes [member path] and [member root.resource_path] to [param to_path]
+func update_path(to_path: String) -> void:
+	path = to_path
+	if root and not root.resource_path == to_path:
+		take_over_path()
 
 func is_saved() -> bool:
-	return saved_version == -1
+	return not is_loaded() or not root or not EditorInterface.is_object_edited(root)
 
 func has_unsaved_changes() -> bool:
-	return saved_version != -1
+	return is_loaded() and root and EditorInterface.is_object_edited(root)
 
-# NOTE: Child components are not updated immediately in inspector.
 func set_saved_version(version: int) -> void:
 	saved_version = version
-	if get_meta("block_mark_edit", false):
-		set_meta("block_mark_edit", null)
-		return
-		
-	EditorInterface.set_object_edited(root, has_unsaved_changes())
-	if is_builtin():
-		EditorInterface.set_object_edited(root.get_local_scene().get_node(root.get_meta("tree", ".")), has_unsaved_changes())
-	unsaved_changes_changed.emit()
-	#print("Saved => %s" % is_saved())
+	print("Version: %d | Edited: %s " % [saved_version, EditorInterface.is_object_edited(root), ])
 
 ## Call when making changes to root.
 func change_version(old: int, new: int) -> void:
-	if is_saved():
+	if old == new: return
+	
+	if saved_version == -1:
 		saved_version = old
+	
 	elif new == saved_version:
 		saved_version = -1
+		set_object_edited(false)
+	
+	if saved_version != -1:
+		set_object_edited(true)
+		
 	#print("Change version %d => %d | Saved version: %d" % [old, new, saved_version])
 
-func update_saved_version_to_current() -> void:
-	if is_builtin():
-		set_meta("block_mark_edit", true)
-	
-	set_saved_version(-1)
-	if is_builtin():
+func set_object_edited(edited: bool) -> void:
+	var currently_edited: bool = EditorInterface.is_object_edited(root)
+	EditorInterface.set_object_edited(root, edited)
+	if currently_edited != edited:
 		unsaved_changes_changed.emit()
+
+func update_save_status() -> void:
+	print("Updating save status: %s" % EditorInterface.is_object_edited(root))
+	if EditorInterface.is_object_edited(root): return
+	saved_version = -1
+	unsaved_changes_changed.emit()
+
+## Sets [member saved_version] to [code]-1[/code].
+func clear_version() -> void:
+	set_saved_version(-1)
 
 ## Sets to [code]-1[/code] if saved else [code]-2[/code].
 func clear_save_version() -> void:
@@ -317,6 +309,8 @@ func get_history_id() -> int:
 	return maxi(0, EditorInterface.get_editor_undo_redo().get_object_history_id(root.get_local_scene() if root.get_local_scene() else root))
 
 func _on_history_cleared(id: int) -> void:
+	return
+	if root.is_built_in(): return
 	if id != get_history_id(): return
 	clear_save_version()
 
@@ -345,6 +339,12 @@ func is_builtin() -> bool:
 func is_temp() -> bool:
 	return not path
 
+func get_local_scene() -> Node:
+	return root.get_local_scene() if root else null
+
+func is_part_of_edited_scene() -> bool:
+	return get_local_scene().is_part_of_edited_scene() if get_local_scene() else false
+
 ## Returns file of scene if root is built-in else returns [code]""[/code]
 func get_scene_file() -> String:
 	return path.get_slice("::", 0) if is_builtin() else ""
@@ -353,29 +353,49 @@ func get_scene_file() -> String:
 func get_scene_id() -> String:
 	return path.get_slice("::", 1) if is_builtin() else ""
 
+func is_in_scene(filepath: String) -> bool:
+	return filepath and is_builtin() and path.contains(filepath)
+
 func is_scene_open() -> bool:
 	return get_scene_file() in EditorInterface.get_open_scenes()
 
-## Returns [code]true[/code] if Resource ID is found in scene file text.
-func is_scene_subresource() -> bool:
-	if not is_builtin():
-		return false
-	var scene_file:= get_scene_file()
-	if not FileAccess.file_exists(scene_file):
-		return false
-	return FileAccess.get_file_as_string(scene_file).contains(get_scene_id())
+func take_over_path() -> void:
+	if not root or not path: return
+	root.take_over_path(path) 
 
-func delete() -> void:
-	for con in get_incoming_connections():
-		con.signal.disconnect(con.callable)
-	
-	for sig in get_signal_list():
-		for con in get_signal_connection_list(sig.name):
-			con.signal.disconnect(con.callable)
-	
-	path = ""
-	root = null
-	id = -1
+## Returns [code]true[/code]/[code]false[/code] if [member root] is ancestor of [param component]. 
+func is_owner_of(component: RationalComponent) -> bool:
+	return root and root.has_child(component, true)
+
+## Returns [code]true[/code]/[code]false[/code] if [member root] is ancestor of [param component]. 
+func is_path_owner(res_path: String) -> bool:
+	if not res_path: return false
+	if res_path == path or (root and root.resource_path == res_path):
+		return true
+	if not root:
+		return false
+	if ResourceLoader.has_cached(res_path):
+		return root.has_child(ResourceLoader.get_cached_ref(res_path), true)
+	for child: RationalComponent in root.get_children(true):
+		if child.resource_path == res_path:
+			return true
+	return false
+
+func update_reference() -> void:
+	if not ResourceLoader.has_cached(path): return
+	if root != ResourceLoader.get_cached_ref(path):
+		root = ResourceLoader.get_cached_ref(path)
+
+func close() -> void:
+	if is_closed(): return
+	set_meta(&"root_closed", true)
+	closed.emit()
+
+func is_closed() -> bool:
+	return get_meta(&"root_closed", false)
+
+func is_valid() -> bool:
+	return not is_closed() #and not is_loading()
 
 func _to_string() -> String:
 	return ("RootData: %s" % root) if root else ("RootData: %s" % path)

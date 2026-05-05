@@ -42,7 +42,7 @@ var horizontal_layout: bool = false:
 
 var active_root: RootData: set = set_active_root
 
-var graph_states: Dictionary[RootData, Dictionary]
+var graph_states: Dictionary[int, Dictionary]
 
 var dragging_connection: bool = false
 var connection_start_position: Vector2
@@ -616,10 +616,6 @@ func _on_connection_request(from_node: StringName, from_port: int, to_node: Stri
 	
 	comp_reparent(to.component, current_parent_comp, from.component, index)
 
-func undo_redo_mark_changed(object: Object) -> void:
-	if EditorInterface.is_object_edited(object): return
-	undo_redo.add_undo_method(EditorInterface, &"set_object_edited", object, false)
-	undo_redo.add_do_method(EditorInterface, &"set_object_edited", object, true)
 
 func comp_reparent(comp: RationalComponent,  current_parent: RationalComponent, target_parent: RationalComponent, index: int = -1) -> void:
 	if not comp or (not current_parent and not target_parent): return
@@ -636,11 +632,9 @@ func comp_reparent(comp: RationalComponent,  current_parent: RationalComponent, 
 	if current_parent:
 		undo_redo.add_undo_method(current_parent, &"add_child", comp, current_parent.get_child_index(comp))
 		undo_redo.add_do_method(current_parent, &"remove_child", comp)
-		undo_redo_mark_changed(current_parent)
 	
 	if target_parent:
 		undo_redo.add_do_method(target_parent, &"add_child", comp, index)
-		undo_redo_mark_changed(target_parent)
 	
 	
 	commit()
@@ -725,7 +719,7 @@ func update_graph() -> void:
 		populate_tree()
 		
 		if can_restore_state():
-			restore_graph_state(graph_states.get(active_root, {}))
+			restore_graph_state(graph_states[active_root.id])
 		else:
 			arrange_graph_nodes()
 		
@@ -739,7 +733,6 @@ func populate_tree() -> void:
 	
 	for comp: RationalComponent in get_active_root_orphans():
 		add_node(comp)
-	
 
 ## Recursively adds all children.
 func add_node(comp: RationalComponent) -> RationalGraphNode:
@@ -937,17 +930,6 @@ func place_nodes(node: TreePositionComponent) -> void:
 	for child: TreePositionComponent in node.children:
 		place_nodes(child)
 
-#func get_tree_rect(node: TreePositionComponent) -> Rect2:
-	#var rect: Rect2 = Rect2(node.item.position_offset, node.item.size)
-	#for child in node.children:
-		#rect = rect.merge(get_tree_rect(child))
-	#return rect
-
-#func get_tree_end(tree_node: TreePositionComponent) -> float:
-	#var result: float = tree_node.x + tree_node.item.layout_size
-	#for child in tree_node.children:
-		#result = maxf(result, get_tree_end(child))
-	#return result
 
 func comp_name(comp: RationalComponent) -> String:
 	return str(comp.get_instance_id()) if comp else "INVALID_COMP"
@@ -969,17 +951,14 @@ func set_active_root(val: RootData) -> void:
 	if active_root == val: return
 	
 	if active_root:
-		active_root.closed.disconnect(close_active_root)
-		graph_states[active_root] = get_graph_state()
+		graph_states[active_root.id] = get_graph_state()
 	
 	active_root = val
 	tree_display.set_active_root(active_root)
 	
 	if active_root:
-		active_root.closed.connect(close_active_root)
-		
-		if active_root.is_builtin():
-			EditorInterface.open_scene_from_path(active_root.get_scene_file())
+		if not active_root.closed.is_connected(_on_root_closed):
+			active_root.closed.connect(_on_root_closed, CONNECT_APPEND_SOURCE_OBJECT | CONNECT_ONE_SHOT)
 		
 		if not active_root.is_loaded() and not active_root.loaded.is_connected(_on_active_root_loaded):
 			active_root.loaded.connect(_on_active_root_loaded, CONNECT_ONE_SHOT | CONNECT_APPEND_SOURCE_OBJECT)
@@ -991,17 +970,22 @@ func _on_active_root_loaded(root: RootData) -> void:
 	if root != active_root: return
 	update_graph()
 
-func close_active_root() -> void:
-	graph_states.erase(active_root)
-	active_root = null
+func _on_root_closed(root: RootData) -> void:
+	if not root: return
+	if active_root == root:
+		active_root = null
+	
+	graph_states.erase(root.id)
+	selection.erase_id(root.id)
 
+#region State
 
 func get_graph_state() -> Dictionary:
 	var node_data: Dictionary
 	for node: RationalGraphNode in get_graph_nodes():
-		node_data[node.component] = {
-			position_offset = node.position_offset,
-			comp = node.component,
+		if not node.component: continue
+		node_data[node.component.get_instance_id()] = {
+			position_offset = node.position_offset
 			}
 	
 	return {
@@ -1023,14 +1007,37 @@ func restore_graph_state(state: Dictionary) -> void:
 	zoom = state.get("zoom", 1.0)
 	scroll_offset = state.get("scroll_offset", Vector2.ZERO)
 	
+	var node_data: Dictionary = state.get("nodes", {})
 	for node: RationalGraphNode in get_graph_nodes():
-		node.position_offset = state.get("nodes", {}).get(node.component, {}).get("position_offset", node.position_offset)
+		if not node.component: continue
+		node.position_offset = node_data.get(node.component.get_instance_id(), {}).get("position_offset", node.position_offset)
 	
 	restoring_state = false
 
+func comp_to_dict(comp: RationalComponent) -> Dictionary:
+	if not comp: return {}
+	var dict: Dictionary = {}
+	var node: RationalGraphNode = comp_get_graph_node(comp)
+	if node and node.position_offset:
+		dict.offset = node.position_offset
+	if comp.resource_path:
+		dict.path = comp.resource_path
+	return dict
+
+func get_current_graph_state() -> Dictionary:
+	return graph_states.get(active_root.id, {}) if active_root else {}
 
 func can_restore_state() -> bool:
-	return active_root and graph_states.has(active_root) and is_node_ready()
+	return active_root and graph_states.has(active_root.id) and is_node_ready()
+
+func get_window_layout(config: ConfigFile) -> void:
+	pass
+
+func set_window_layout(config: ConfigFile) -> void:
+	pass
+
+
+#endregion State
 
 func get_elbow_connection_line(from_position: Vector2, to_position: Vector2) -> PackedVector2Array:
 	var points: PackedVector2Array
@@ -1090,13 +1097,13 @@ func get_orphan_components() -> Array[RationalComponent]:
 
 func get_active_root_orphans() -> Array[RationalComponent]:
 	var result: Array[RationalComponent]
-	for orphan: RationalComponent in graph_states.get(active_root, {}).get("orphans", []):
+	for orphan: RationalComponent in get_current_graph_state().get("orphans", []):
 		result.push_back(orphan)
 	return result
 
 func save_current_orphans() -> void:
 	if not active_root: return
-	graph_states.get_or_add(active_root, {})["orphans"] = get_orphan_components()
+	graph_states.get_or_add(active_root.id, {})["orphans"] = get_orphan_components()
 
 func get_port_range_squared(mod: float = 1.0) -> float:
 	return (mod * PORT_RANGE)  ** 2
@@ -1341,9 +1348,12 @@ func create_action(action_name: String, merge_mode: UndoRedo.MergeMode = UndoRed
 	var context: Object = active_root.root
 	
 	if active_root.is_builtin():
+		is_part_of_edited_scene
 		EditorInterface.open_scene_from_path(active_root.get_scene_file())
 	elif not active_root.root.get_local_scene():
 		context = cache
+	
+	
 	
 	undo_redo.create_action(action_name, merge_mode, context, false, root_changed)
 	
@@ -1451,7 +1461,8 @@ func get_top_clipboard_components() -> Array[RationalComponent]:
 	return components
 
 func clipboard_copy(components: Array[RationalComponent]) -> void:
-	clipboard.assign(components.filter(comp_is_valid))
+	clipboard.assign(components.filter(comp_is_valid).duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL))
+	
 
 func clipboard_clear() -> void:
 	clipboard.clear()
@@ -1460,6 +1471,7 @@ func can_paste() -> bool:
 	return not get_clipboard().is_empty()
 
 #endregion Clipboard
+
 
 func sort_center_distance(a: Control, b: Control, point: Vector2) -> bool:
 	return a.get_rect().get_center().distance_squared_to(point) < b.get_rect().get_center().distance_squared_to(point)

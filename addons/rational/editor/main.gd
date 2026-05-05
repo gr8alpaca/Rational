@@ -95,7 +95,10 @@ func edit_tree(tree: RationalTree) -> void:
 	cache.edit_rational_tree(tree)
 
 func edit_root(root: RationalComponent) -> void:
+	#cache.edit_root(root)
+	#EditorInterface.set_main_screen_editor("Rational")
 	cache.edit_root(root)
+	EditorInterface.get_editor_main_screen()
 	EditorInterface.set_main_screen_editor("Rational")
 
 

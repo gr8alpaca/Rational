@@ -18,8 +18,6 @@ static func get_selection() -> Object:
 static func get_undo_redo() -> Object:
 	return EditorInterface.get_editor_undo_redo()
 
-static func toast(message: String, severity: EditorToaster.Severity = 0, tooltip: String = "") -> void:
-	EditorInterface.get_editor_toaster().push_toast(message, severity, tooltip)
 
 #region ClassData
 

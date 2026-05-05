@@ -1,17 +1,18 @@
+## Type of [RationalComponent] that manages children.
 @abstract
 @tool
 class_name Composite extends RationalComponent
-## Type of [RationalComponent] that manages children.
 
 signal child_added(child: RationalComponent)
 signal child_removed(child: RationalComponent)
 
-@export var children: Array[RationalComponent]: set = set_children 
+@export var children: Array[RationalComponent] = []: set = set_children 
 
 @abstract func _no_tick(delta: float, board: Blackboard, actor: Node) -> int
 
 @abstract func _tick(delta: float, board: Blackboard, actor: Node) -> int
 
+## Doesn't do anything except [code]null[/code] check currently.
 func can_parent(child: RationalComponent) -> bool:
 	return child != null
 
@@ -35,11 +36,11 @@ func add_child(child: RationalComponent, idx: int = -1) -> void:
 	else:
 		children.insert(idx, child)
 	
+	child.set_parent(self)
 	child.tree_changed.connect(notify_tree_changed)
 	child_added.emit(child)
 	children_changed.emit()
 	notify_tree_changed()
-
 
 func remove_child(child: RationalComponent) -> void:
 	if not child: return
@@ -51,6 +52,7 @@ func remove_child(child: RationalComponent) -> void:
 	
 	children.remove_at(child_index)
 	
+	child.set_parent(null)
 	child.tree_changed.disconnect(notify_tree_changed)
 	child_removed.emit(child)
 	children_changed.emit()
@@ -66,11 +68,13 @@ func set_children(val: Array[RationalComponent]) -> void:
 	
 	for child: RationalComponent in previous_children:
 		if child in children: continue
+		child.set_parent(self)
 		child.tree_changed.disconnect(notify_tree_changed)
 		child_removed.emit(child)
 	
 	for child: RationalComponent in children:
 		if child in previous_children: continue
+		child.set_parent(null)
 		child.tree_changed.connect(notify_tree_changed)
 		child_added.emit(child)
 	
@@ -106,6 +110,9 @@ func move_child(child: RationalComponent, to_index: int) -> void:
 
 
 func get_children(recursive: bool = false) -> Array[RationalComponent]:
+	if not recursive: 
+		return children
+	
 	var result: Array[RationalComponent]
 	for child: RationalComponent in children:
 		if not child: continue

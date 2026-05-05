@@ -17,6 +17,8 @@ signal request_toggle_files_panel
 
 var cache: Cache
 
+#var selection_undo_redo: UndoRedo = UndoRedo.new()
+
 func _init() -> void:
 	theme_changed.connect(apply_theme)
 
@@ -37,7 +39,6 @@ func init_editor() -> void:
 	
 	cache = Util.get_cache()
 	cache.data_added.connect(add_data)
-	cache.data_erased.connect(erase_data)
 	cache.edited_tree_changed.connect(_on_edited_tree_changed)
 	
 	build_list()
@@ -92,34 +93,36 @@ func root_get_item(root: RationalComponent) -> TreeItem:
 			return item
 	return null
 
-
 func close_item(item: TreeItem) -> void:
 	if not item: return
-	item_get_data(item).closed.emit()
-
-func close_data(data: RootData) -> void:
-	if not data: return
-	data.closed.emit() 
+	item.disconnect(&"close_item", close_item)
+	item_get_data(item).close()
+	item.free()
 
 func add_data(data: RootData) -> void:
-	if has_data(data): return
+	if not data or has_data(data): return
 	var item: TreeItem = create_item()
 	item.set_metadata(0, data)
-	update_item(item)
 	
-	data.changed.connect(_on_data_changed, CONNECT_APPEND_SOURCE_OBJECT)
-	data.unsaved_changes_changed.connect(_on_unsaved_changes_changed, CONNECT_APPEND_SOURCE_OBJECT)
-	data.closed.connect(_on_data_closed, CONNECT_APPEND_SOURCE_OBJECT)
+	item.add_user_signal("close_item")
+	item.connect(&"close_item", close_item, CONNECT_APPEND_SOURCE_OBJECT | CONNECT_DEFERRED)
+	data.closed.connect(item.emit_signal.bind(&"close_item"))
+	
+	item.add_user_signal("data_changed")
+	item.connect(&"data_changed", _on_data_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	data.changed.connect(item.emit_signal.bind(&"data_changed"))
+	
+	item.add_user_signal("unsaved_changed")
+	item.connect(&"unsaved_changed", _on_unsaved_changes_changed, CONNECT_APPEND_SOURCE_OBJECT)
+	data.unsaved_changes_changed.connect(item.emit_signal.bind(&"unsaved_changed"))
+	
+	update_item(item)
 	
 	if data == cache.get_edited_tree():
 		item.select(0)
 		ensure_cursor_is_visible()
 	
 	sort_files()
-
-func add_root(root: RationalComponent, force_path: String = "") -> void:
-	if not root: return
-	cache.add_root(root, force_path)
 
 
 func update_item(item: TreeItem) -> void:
@@ -136,22 +139,11 @@ func data_get_tooltip(data: RootData) -> String:
 	return "Type: %s\nPath: %s" % [Util.comp_get_class(data.root), data.path]
 
 func erase_data(data: RootData) -> void:
-	cache.erase_data(data)
-	data.closed.emit()
-
-func _on_data_closed(data: RootData) -> void:	
 	if not data: return
-	var item:= data_get_item(data)
-	
-	data.changed.disconnect(_on_data_changed)
-	data.unsaved_changes_changed.disconnect(_on_unsaved_changes_changed)
-	data.closed.disconnect(_on_data_closed)
-	
-	if item:
-		item.free()
+	data.close()
 
-func _on_data_changed(data: RootData) -> void:
-	update_item(data_get_item(data))
+func _on_data_changed(item: TreeItem) -> void:
+	update_item(item)
 
 func _on_unsaved_changes_changed(data: RootData) -> void:
 	var item: TreeItem = data_get_item(data)
@@ -167,27 +159,30 @@ func _on_filter_text_changed(new_text: String) -> void:
 
 func edit_data(data: RootData) -> void:
 	if not data: return
-	cache.edit_tree(data)
+	cache.edit_tree(data, true)
 
-func edit_tree(tree: RationalTree) -> void:
-	if not tree: return
-	if not tree.root:
-		prompt_new_root(tree)
-		return
-	
-	cache.edit_root(tree.root)
+#func edit_tree(tree: RationalTree) -> void:
+	#if not tree: return
+	#if not tree.root:
+		#prompt_new_root(tree)
+		#return
+	#
+	#cache.edit_root(tree.root)
 
 func select_data(data: RootData) -> void:
 	if not data: return
 	add_data(data)
-	data_get_item(data).select(0)
+	var item: TreeItem = data_get_item(data)
+	if item.is_selected(0):
+		cache.is_Tree
+		edit_data(data)
+	item.select(0)
 	ensure_cursor_is_visible()
 	
 
 func _on_item_selected() -> void:
-	var item: TreeItem = get_selected()
-	if not item: return
-	edit_data(item_get_data(item))
+	print("Item Selected %s" % get_selected().get_text(0))
+	edit_data(item_get_data(get_selected()))
 
 func _on_add_root_button_pressed() -> void:
 	prompt_new_root()
@@ -199,11 +194,11 @@ func prompt_new_root(for_tree: RationalTree = null) -> void:
 func create_new_root(script_path: String) -> void:
 	if not Util.script_path_is_valid(script_path): return
 	var new_root: RationalComponent = Util.instantiate_path(script_path)
-	cache.add_root(new_root)
-	var data: RootData = cache.get_data(new_root)
-	select_data(data)
+	cache.edit_root(new_root)
 
 func _on_edited_tree_changed(data: RootData) -> void:
+	if not has_data(data):
+		add_data(data)
 	select_data(data)
 
 #region RightClickMenu

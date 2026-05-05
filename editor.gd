@@ -37,6 +37,7 @@ const RationalGraphNode = preload("uid://vsth43p1vl5f")
 func _run() -> void:
 	print("Running...")
 	#if not Engine.has_singleton(&"Rational"): return
+	var file_system: EditorFileSystem = EditorInterface.get_resource_filesystem()
 	var editor_settings: EditorSettings = EditorInterface.get_editor_settings()
 	var plugin: RationalPlugin = Engine.get_singleton(&"Rational") if Engine.has_singleton(&"Rational") else null
 	var inspector := EditorInterface.get_inspector()
@@ -46,67 +47,55 @@ func _run() -> void:
 	var tree_1: RationalTree = scene.get_node(^"%RationalTree") if scene and scene.scene_file_path == SCENE_PATH else null
 	var tree_2: RationalTree = scene.get_node(^"%RationalTree2") if scene and scene.scene_file_path == SCENE_PATH else null
 	
-	#var inspector_plugin: InpsectorPlugin = plugin.inspector_plugin
-	#var cache: Cache = plugin.cache
-	#var class_data: ClassData = plugin.class_data
-	#var selection: Selection = plugin.selection
-	#
-	#var main: Main = plugin.editor
-	#var root_file_tree: RootFileList = main.root_file_tree
-	#var tree_display: TreeDisplay = main.tree_display
-	#var graph_edit: GraphEditor = main.graph_edit
+	var inspector_plugin: InpsectorPlugin = plugin.inspector_plugin if plugin else null
+	var cache: Cache = plugin.cache if plugin else null
+	var class_data: ClassData = plugin.class_data if plugin else null
+	var selection: Selection = plugin.selection if plugin else null
+	
+	var main: Main = plugin.editor if plugin else null
+	var root_file_tree: RootFileList = main.root_file_tree if main else null
+	var tree_display: TreeDisplay = main.tree_display if main else null
+	var graph_edit: GraphEditor = main.graph_edit if main else null
 	#var test_root: Composite = load("uid://dbllgp7c366kf")
 	
+	const GUINEA_PIG := "res://TestScene/RationalObjects/guinea_pig.tres"
+	const SCENE := "res://TestScene/test_scene_character.tscn"
 	const PATH := "res://TestScene/test_scene_character.tscn::Resource_q1v5c"
-	const PATH2 := "res://TestScene/RationalObjects/guinea_pig.tres"
-	const PATH_SCENE := "res://TestScene/test_scene_character.tscn"
 	const PATH_ROOT := "res://TestScene/test_scene_character.tscn::Resource_xa1ah"
 	
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	
-	#print(selection._data)
-	##print_cache(cache)
-	#return
+	root_file_tree.get_root().get_child(0).select(0)
 	
-	print(ResourceLoader.has_cached(PATH_SCENE))
-	var packed:= ResourceLoader.load(PATH_SCENE, "", ResourceLoader.CACHE_MODE_REPLACE)
-	var root: Composite 
-	#root = ResourceLoader.load(PATH_ROOT, "", ResourceLoader.CACHE_MODE_REPLACE)
-	for r in get_roots_in_scene(packed):
-		r.print_tree_pretty()
-	print(ResourceLoader.exists(PATH_ROOT), ResourceLoader.has_cached(PATH_ROOT))
-	if ResourceLoader.has_cached(PATH_ROOT):
-		
-		root = ResourceLoader.get_cached_ref(PATH_ROOT)
-		print(root.get_local_scene())
-		root.print_tree_pretty()
-		#var data: RootData
-		##root.get_signal_list()
-		#for sig_dict in root.get_signal_list():
-			#for con in root.get_signal_connection_list(sig_dict.name):
-				#if con.callable.get_object() is RootData:
-					#data = con.callable.get_object()
-				#
-				#printt(con.signal.get_name(), con.callable.get_object(), con.callable.get_method())
-				#con.signal.disconnect(con.callable)
-		
-		print("Root: %d" % [root.get_reference_count()])
-		
-		#data.root = null
-		#for sig_name in data.get_signal_list():
-			#for dict in data.get_signal_connection_list(sig_name.name):
-				#printt(dict.signal.get_name(), dict.callable.get_object(), dict.callable.get_method())
-				#dict.signal.disconnect(dict.callable)
-		#
-		#data.closed
-			#print(sig.get_name())
-				#print("\t %s => %s" % [con.callable.get_object(), con.callable.get_method()])
+	#file_system.update_file.call_deferred(SCENE)
+	#file_system.reimport_files(PackedStringArray([SCENE]))
+	#inspector_plugin._init()
+	return
+	var comp: Composite = load(PATH)
+	var comp_scene: Node = comp.get_local_scene()
+	#comp_scene.is_editable_instance()
+	#packed = packed.duplicate_deep(Resource.DEEP_DUPLICATE_ALL)
+	#var err = ResourceSaver.save(packed)
+	#var path: String = "res://temp.tscn"
+	#var err = ResourceSaver.save(ResourceLoader.load(SCENE).duplicate_deep(Resource.DEEP_DUPLICATE_ALL), path, )
+	#print("Saved => %s" % error_string(err))
+	
+	return
+	#var loaded_root: Composite = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE) if ResourceLoader.exists(path) else null
+	#var root: Composite = ResourceLoader.get_cached_ref(path) if ResourceLoader.has_cached(path) else null
+	#var local_scene:= root.get_local_scene()
+	#printt(scene, local_scene)
+	#
+	#root.resource_name = "RootTest"
+	
+	#var err = ResourceSaver.save(root, root.resource_path, )
+	#if err != OK:
+		#print(error_string(err))
+	#EditorInterface.save_scene.call_deferred()
+	#printt(loaded_root.get_instance_id(), root.get_instance_id())
+	#printt(loaded_root, root, loaded_root == root)
 	
 	
-		#for con in root.get_incoming_connections():
-			#print()
-		#print(root.get_incoming_connections())
-		
 
 
 func get_roots_in_scene(scene: PackedScene) -> Array[RationalComponent]:

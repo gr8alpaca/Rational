@@ -1,36 +1,35 @@
-[gd_scene format=3 uid="uid://cqlh6e0fg4ujq"]
+[gd_scene format=3 uid="uid://c0ivgfn4nyhk5"]
 
-[ext_resource type="Texture2D" uid="uid://di2wc3o4q6mm" path="res://addons/rational/icons/Failer.svg" id="1_hfd0a"]
-[ext_resource type="Texture2D" uid="uid://c8jqnvh2qxehl" path="res://TestScene/progress/Progress1.svg" id="2_awrda"]
-[ext_resource type="Texture2D" uid="uid://dwnb2er0cisqb" path="res://TestScene/progress/Progress2.svg" id="3_8r7uy"]
-[ext_resource type="Texture2D" uid="uid://0l66widh5vmv" path="res://TestScene/progress/Progress3.svg" id="4_du3fg"]
-[ext_resource type="Texture2D" uid="uid://xu35evcpgnei" path="res://TestScene/progress/Progress4.svg" id="5_e0gg1"]
-[ext_resource type="Texture2D" uid="uid://bmhv8up1qumdn" path="res://TestScene/progress/Progress5.svg" id="6_e30hf"]
-[ext_resource type="Texture2D" uid="uid://ci48tvdso7aw8" path="res://TestScene/progress/Progress6.svg" id="7_c62ll"]
-[ext_resource type="Texture2D" uid="uid://devwwlu2rqt0k" path="res://TestScene/progress/Progress7.svg" id="8_yb3kw"]
-[ext_resource type="Texture2D" uid="uid://oye25kn7ai44" path="res://TestScene/progress/Progress8.svg" id="9_1ligp"]
-[ext_resource type="Texture2D" uid="uid://gq8ctm18yiq8" path="res://addons/rational/icons/Succeeder.svg" id="10_g5bju"]
-[ext_resource type="Texture2D" uid="uid://cc51relmrs63n" path="res://TestScene/StatusWarning.svg" id="11_645ia"]
-[ext_resource type="Script" uid="uid://davp5u2xw823n" path="res://addons/rational/components/rational_tree.gd" id="12_m8cgi"]
-[ext_resource type="Script" uid="uid://6ug5fa63l34w" path="res://addons/rational/components/blackboard.gd" id="13_6m14f"]
-[ext_resource type="Texture2D" uid="uid://c6xt30y0jeyie" path="res://TestScene/Debug.svg" id="14_4x1kh"]
-[ext_resource type="Script" uid="uid://dc6staqfmnb7u" path="res://addons/rational/components/leaves/blackboard_has.gd" id="14_leic3"]
-[ext_resource type="Script" uid="uid://bf5yfufeku4t4" path="res://addons/rational/components/rational_component.gd" id="14_s7iw1"]
-[ext_resource type="Script" uid="uid://1ug81784y0yo" path="res://addons/rational/components/leaves/blackboard_set.gd" id="15_mg37k"]
-[ext_resource type="Script" uid="uid://b084a27qrwlfn" path="res://addons/rational/components/sequence.gd" id="16_f0c8p"]
-[ext_resource type="Script" uid="uid://dslcu3blcrgyx" path="res://addons/rational/components/decorators/succeeder.gd" id="17_8sece"]
-[ext_resource type="Script" uid="uid://nluwfj1jnkvo" path="res://addons/rational/components/leaves/condition_expression.gd" id="17_q1v5c"]
-[ext_resource type="Script" uid="uid://lp2l3w30rxd3" path="res://addons/rational/components/decorators/failer.gd" id="18_4t32f"]
-[ext_resource type="Script" uid="uid://bwdobsxt3tlmo" path="res://TestScene/RationalObjects/move.gd" id="19_4t32f"]
-[ext_resource type="Script" uid="uid://msgesjor62tm" path="res://TestScene/player.gd" id="19_f0c8p"]
-[ext_resource type="Script" uid="uid://dq5d3qx2jtck3" path="res://addons/rational/components/decorators/inverter.gd" id="19_mg37k"]
-[ext_resource type="Script" uid="uid://cugqq0rl38kp7" path="res://addons/rational/components/fallback.gd" id="20_leic3"]
+[ext_resource type="Texture2D" uid="uid://di2wc3o4q6mm" path="res://addons/rational/icons/Failer.svg" id="1_ntptv"]
+[ext_resource type="Texture2D" uid="uid://c8jqnvh2qxehl" path="res://TestScene/progress/Progress1.svg" id="2_4fapy"]
+[ext_resource type="Texture2D" uid="uid://dwnb2er0cisqb" path="res://TestScene/progress/Progress2.svg" id="3_5bp34"]
+[ext_resource type="Texture2D" uid="uid://0l66widh5vmv" path="res://TestScene/progress/Progress3.svg" id="4_m0rch"]
+[ext_resource type="Texture2D" uid="uid://xu35evcpgnei" path="res://TestScene/progress/Progress4.svg" id="5_jeu0a"]
+[ext_resource type="Texture2D" uid="uid://bmhv8up1qumdn" path="res://TestScene/progress/Progress5.svg" id="6_e56so"]
+[ext_resource type="Texture2D" uid="uid://ci48tvdso7aw8" path="res://TestScene/progress/Progress6.svg" id="7_2x358"]
+[ext_resource type="Texture2D" uid="uid://devwwlu2rqt0k" path="res://TestScene/progress/Progress7.svg" id="8_orh8r"]
+[ext_resource type="Texture2D" uid="uid://oye25kn7ai44" path="res://TestScene/progress/Progress8.svg" id="9_2vgdh"]
+[ext_resource type="Texture2D" uid="uid://gq8ctm18yiq8" path="res://addons/rational/icons/Succeeder.svg" id="10_jgbw5"]
+[ext_resource type="Texture2D" uid="uid://cc51relmrs63n" path="res://TestScene/StatusWarning.svg" id="11_6l4ow"]
+[ext_resource type="Script" uid="uid://davp5u2xw823n" path="res://addons/rational/components/rational_tree.gd" id="12_taq1w"]
+[ext_resource type="Script" uid="uid://bf5yfufeku4t4" path="res://addons/rational/components/rational_component.gd" id="13_3hdmq"]
+[ext_resource type="Script" uid="uid://dc6staqfmnb7u" path="res://addons/rational/components/leaves/blackboard_has.gd" id="14_dxbhx"]
+[ext_resource type="Script" uid="uid://1ug81784y0yo" path="res://addons/rational/components/leaves/blackboard_set.gd" id="15_j73aa"]
+[ext_resource type="Script" uid="uid://cugqq0rl38kp7" path="res://addons/rational/components/fallback.gd" id="16_s81d5"]
+[ext_resource type="Script" uid="uid://nluwfj1jnkvo" path="res://addons/rational/components/leaves/condition_expression.gd" id="17_66tnt"]
+[ext_resource type="Script" uid="uid://dq5d3qx2jtck3" path="res://addons/rational/components/decorators/inverter.gd" id="19_6ck1k"]
+[ext_resource type="Script" uid="uid://bwdobsxt3tlmo" path="res://TestScene/RationalObjects/move.gd" id="20_3yxvd"]
+[ext_resource type="Script" uid="uid://b084a27qrwlfn" path="res://addons/rational/components/sequence.gd" id="21_uwp6l"]
+[ext_resource type="Script" uid="uid://6ug5fa63l34w" path="res://addons/rational/components/blackboard.gd" id="22_gox4o"]
+[ext_resource type="Script" uid="uid://dslcu3blcrgyx" path="res://addons/rational/components/decorators/succeeder.gd" id="23_yj0rx"]
+[ext_resource type="Script" uid="uid://msgesjor62tm" path="res://TestScene/player.gd" id="24_ufxap"]
+[ext_resource type="Texture2D" uid="uid://c6xt30y0jeyie" path="res://TestScene/Debug.svg" id="25_wpkhy"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_0cnec"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_hfd0a")
+"texture": ExtResource("1_ntptv")
 }],
 "loop": true,
 "name": &"failure",
@@ -38,28 +37,28 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("2_awrda")
+"texture": ExtResource("2_4fapy")
 }, {
 "duration": 1.0,
-"texture": ExtResource("3_8r7uy")
+"texture": ExtResource("3_5bp34")
 }, {
 "duration": 1.0,
-"texture": ExtResource("4_du3fg")
+"texture": ExtResource("4_m0rch")
 }, {
 "duration": 1.0,
-"texture": ExtResource("5_e0gg1")
+"texture": ExtResource("5_jeu0a")
 }, {
 "duration": 1.0,
-"texture": ExtResource("6_e30hf")
+"texture": ExtResource("6_e56so")
 }, {
 "duration": 1.0,
-"texture": ExtResource("7_c62ll")
+"texture": ExtResource("7_2x358")
 }, {
 "duration": 1.0,
-"texture": ExtResource("8_yb3kw")
+"texture": ExtResource("8_orh8r")
 }, {
 "duration": 1.0,
-"texture": ExtResource("9_1ligp")
+"texture": ExtResource("9_2vgdh")
 }],
 "loop": true,
 "name": &"loading",
@@ -67,7 +66,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("10_g5bju")
+"texture": ExtResource("10_jgbw5")
 }],
 "loop": true,
 "name": &"success",
@@ -75,7 +74,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("11_645ia")
+"texture": ExtResource("11_6l4ow")
 }],
 "loop": true,
 "name": &"warning",
@@ -84,12 +83,12 @@ animations = [{
 
 [sub_resource type="Resource" id="Resource_4t32f"]
 resource_name = "HasArea"
-script = ExtResource("14_leic3")
+script = ExtResource("14_dxbhx")
 key = "area"
 
 [sub_resource type="Resource" id="Resource_c3hlo"]
 resource_name = "BlackboardSetArea"
-script = ExtResource("15_mg37k")
+script = ExtResource("15_j73aa")
 key = "area"
 use_expression = true
 value = null
@@ -97,17 +96,17 @@ value_expression = "get_node(\"Area2D\")"
 
 [sub_resource type="Resource" id="Resource_wh884"]
 resource_name = "Set Area2D"
-script = ExtResource("20_leic3")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_4t32f"), SubResource("Resource_c3hlo")])
+script = ExtResource("16_s81d5")
+children = Array[ExtResource("13_3hdmq")]([SubResource("Resource_4t32f"), SubResource("Resource_c3hlo")])
 
 [sub_resource type="Resource" id="Resource_i7w4y"]
 resource_name = "HasPlayer"
-script = ExtResource("14_leic3")
+script = ExtResource("14_dxbhx")
 key = "player"
 
 [sub_resource type="Resource" id="Resource_uq5so"]
 resource_name = "SetPlayer"
-script = ExtResource("15_mg37k")
+script = ExtResource("15_j73aa")
 key = "player"
 use_expression = true
 value = null
@@ -115,41 +114,36 @@ value_expression = "self.get_parent().get_node(\"Player\")"
 
 [sub_resource type="Resource" id="Resource_k0gel"]
 resource_name = "Set Player"
-script = ExtResource("20_leic3")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_i7w4y"), SubResource("Resource_uq5so")])
+script = ExtResource("16_s81d5")
+children = Array[ExtResource("13_3hdmq")]([SubResource("Resource_i7w4y"), SubResource("Resource_uq5so")])
 
 [sub_resource type="Resource" id="Resource_5y2e1"]
 resource_name = "PlayerInArea"
-script = ExtResource("17_q1v5c")
+script = ExtResource("17_66tnt")
 condition = "board.get_local(\"area\").get_overlapping_bodies().has(board.get_local(\"player\"))"
-
-[sub_resource type="Resource" id="Resource_phjxm"]
-resource_name = "Failer"
-script = ExtResource("18_4t32f")
 
 [sub_resource type="Resource" id="Resource_xvw0u"]
 resource_name = "TargetSetInverter"
-script = ExtResource("19_mg37k")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_phjxm")])
+script = ExtResource("19_6ck1k")
 
 [sub_resource type="Resource" id="Resource_18x2g"]
 resource_name = "MoveAction"
-script = ExtResource("19_4t32f")
+script = ExtResource("20_3yxvd")
 
 [sub_resource type="Resource" id="Resource_xeqm5"]
 resource_name = "Move To Player"
-script = ExtResource("20_leic3")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_5y2e1"), SubResource("Resource_xvw0u"), SubResource("Resource_18x2g")])
+script = ExtResource("16_s81d5")
+children = Array[ExtResource("13_3hdmq")]([SubResource("Resource_5y2e1"), SubResource("Resource_xvw0u"), SubResource("Resource_18x2g")])
 
 [sub_resource type="Resource" id="Resource_xa1ah"]
 resource_name = "Root"
-script = ExtResource("16_f0c8p")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_wh884"), SubResource("Resource_k0gel"), SubResource("Resource_xeqm5")])
+script = ExtResource("21_uwp6l")
+children = Array[ExtResource("13_3hdmq")]([SubResource("Resource_wh884"), SubResource("Resource_k0gel"), SubResource("Resource_xeqm5")])
 metadata/_custom_type_script = "uid://b084a27qrwlfn"
 metadata/tree = "%RationalTree"
 
 [sub_resource type="Resource" id="Resource_8sece"]
-script = ExtResource("13_6m14f")
+script = ExtResource("22_gox4o")
 metadata/_custom_type_script = "uid://6ug5fa63l34w"
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_b1mpv"]
@@ -157,27 +151,27 @@ radius = 200.0
 
 [sub_resource type="Resource" id="Resource_leic3"]
 resource_name = "Succeeder"
-script = ExtResource("17_8sece")
+script = ExtResource("23_yj0rx")
 
 [sub_resource type="Resource" id="Resource_k2f85"]
 resource_name = "Succeeder"
-script = ExtResource("17_8sece")
+script = ExtResource("23_yj0rx")
 
 [sub_resource type="Resource" id="Resource_mg37k"]
 resource_name = "NoPlease"
-script = ExtResource("16_f0c8p")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_leic3"), SubResource("Resource_k2f85")])
+script = ExtResource("21_uwp6l")
+children = Array[ExtResource("13_3hdmq")]([SubResource("Resource_leic3"), SubResource("Resource_k2f85")])
 
 [sub_resource type="Resource" id="Resource_q1v5c"]
 resource_name = "RootTest"
-script = ExtResource("20_leic3")
-children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_mg37k")])
+script = ExtResource("16_s81d5")
+children = Array[ExtResource("13_3hdmq")]([SubResource("Resource_mg37k")])
 metadata/_custom_type_script = "uid://cugqq0rl38kp7"
 metadata/_path_data = "Actor2/RationalTree2:root"
 metadata/tree = "%RationalTree2"
 
 [sub_resource type="Resource" id="Resource_1jrjd"]
-script = ExtResource("13_6m14f")
+script = ExtResource("22_gox4o")
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_8e8r4"]
 size = Vector2(50, 50)
@@ -195,7 +189,7 @@ autoplay = "success"
 
 [node name="RationalTree" type="Node" parent="Actor" unique_id=1609543142 node_paths=PackedStringArray("actor")]
 unique_name_in_owner = true
-script = ExtResource("12_m8cgi")
+script = ExtResource("12_taq1w")
 root = SubResource("Resource_xa1ah")
 root_id = "Resource_xa1ah"
 actor = NodePath("..")
@@ -216,7 +210,7 @@ speed_scale = 1.1
 
 [node name="RationalTree2" type="Node" parent="Actor2" unique_id=1425211417 node_paths=PackedStringArray("actor")]
 unique_name_in_owner = true
-script = ExtResource("12_m8cgi")
+script = ExtResource("12_taq1w")
 root = SubResource("Resource_q1v5c")
 root_id = "Resource_q1v5c"
 actor = NodePath("..")
@@ -247,11 +241,11 @@ position = Vector2(222, 107)
 motion_mode = 1
 floor_stop_on_slope = false
 floor_constant_speed = true
-script = ExtResource("19_f0c8p")
+script = ExtResource("24_ufxap")
 
 [node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=509815302]
 scale = Vector2(2, 2)
-texture = ExtResource("14_4x1kh")
+texture = ExtResource("25_wpkhy")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=804735261]
 shape = SubResource("RectangleShape2D_8e8r4")

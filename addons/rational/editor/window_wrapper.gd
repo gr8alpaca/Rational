@@ -9,6 +9,8 @@ var main_window_parent: MarginContainer
 
 var main: MainEditor
 
+var last_main_screen: String = "2D"
+
 func _init() -> void:
 	name = &"Rational"
 	
@@ -43,12 +45,13 @@ func _ready() -> void:
 	window.size = size
 	window.position = get_screen_position()
 	main = Engine.get_singleton(&"Rational").editor
+	Engine.get_singleton(&"Rational").main_screen_changed.connect(_on_main_screen_changed)
 	main.make_floating_button.pressed.connect(open_window)
 	add_child(main)
 
 func open_window() -> void:
 	main.reparent(main_window_parent, false)
-	EditorInterface.set_main_screen_editor("2D")
+	EditorInterface.set_main_screen_editor(last_main_screen)
 	main.make_floating_button.hide()
 	window.show()
 
@@ -58,9 +61,9 @@ func close_window() -> void:
 	main.make_floating_button.show()
 	set_window_rect.call_deferred(Rect2i(get_screen_position(), size))
 
-# Used by plugin.
 func make_visible(is_visible: bool) -> void:
-	if window.visible:
+	if is_visible and window.visible:
+		EditorInterface.set_main_screen_editor(get_last_main_screen())
 		window.grab_focus()
 		return
 	
@@ -80,3 +83,10 @@ func set_window_rect(rect: Rect2i) -> void:
 	if not rect: return
 	window.position = rect.position
 	window.size = rect.size
+
+func get_last_main_screen() -> String:
+	return last_main_screen if last_main_screen else "2D"
+
+func _on_main_screen_changed(screen_name: String) -> void:
+	if screen_name == "Rational": return
+	last_main_screen = screen_name

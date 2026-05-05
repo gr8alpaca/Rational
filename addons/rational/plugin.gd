@@ -25,14 +25,16 @@ var editor: Editor
 # TODO - EditorResourceConversionPlugin ?
 
 func _enter_tree() -> void:
-	resource_saved.connect(_on_resource_saved)
-	scene_saved.connect(_on_scene_saved)
-	get_script_create_dialog().script_created.connect(_on_script_created)
+	name = &"Rational"
+	Engine.register_singleton(&"Rational", self)
 	
 	Settings.populate()
 	
-	name = &"Rational"
-	Engine.register_singleton(&"Rational", self)
+	resource_saved.connect(_on_resource_saved)
+	scene_changed.connect(_on_scene_changed)
+	scene_saved.connect(_on_scene_saved)
+	scene_closed.connect(_on_scene_closed)
+	get_script_create_dialog().script_created.connect(_on_script_created)
 	
 	cache = Cache.new()
 	class_data = ClassData.new()
@@ -64,12 +66,10 @@ func _exit_tree() -> void:
 	Engine.unregister_singleton(&"Rational")
 
 func _handles(object: Object) -> bool:
-	return object is RationalTree and EditorInterface.get_inspector().get_edited_object() != object
+	return object is RationalComponent
 
 func _edit(object: Object) -> void:
-	editor.edit_tree(object)
-	if EditorInterface.get_inspector().get_edited_object() != object:
-		EditorInterface.inspect_object.call_deferred(object, "", true)
+	cache.edit_root(object)
 
 func _make_visible(visible: bool) -> void:
 	window_wrapper.make_visible(visible)
@@ -84,7 +84,7 @@ func _get_plugin_name() -> String:
 	return "Rational"
 
 func _save_external_data() -> void:
-	cache.save()
+	cache.save_external_data()
 
 func _get_unsaved_status(for_scene: String) -> String:
 	return cache.get_unsaved_status(for_scene)
@@ -93,40 +93,54 @@ func _build() -> bool:
 	return true
 
 func _apply_changes() -> void:
-	#print("Apply Changes...")
 	pass
 
 func _get_window_layout(configuration: ConfigFile) -> void:
 	window_wrapper.get_window_layout(configuration)
+	cache.get_window_layout(configuration)
+	editor.propagate_call(&"get_window_layout", [configuration])
 
 func _set_window_layout(configuration: ConfigFile) -> void:
 	window_wrapper.set_window_layout(configuration)
+	cache.set_window_layout(configuration)
+	editor.propagate_call(&"set_window_layout", [configuration])
 
+func _on_scene_changed(node: Node) -> void:
+	if not node: return
+	cache._on_scene_changed(node)
 
-#region Signal Methods 
+func _on_scene_closed(filepath: String) -> void:
+	cache.close_scene_data(filepath)
 
-#func _on_scene_saved(filepath: String) -> void:
-	#print_rich("Scene saved: [color=yellow]%s[/color] " % [filepath])
+func _on_scene_saved(filepath: String) -> void:
+	print_rich("Scene saved: [color=yellow]%s[/color] " % [filepath])
+	#if filepath == "res://TestScene/test_scene_character.tscn":
+		#var file_string: String = FileAccess.get_file_as_string(filepath)
+		#if get_meta(&"file_string", file_string) != file_string:
+			#print_rich("[color=red]FILE CHANGED[/color]")
+		#set_meta(&"file_string", file_string)
+	cache._on_scene_saved(filepath)
 
 func _on_file_moved(old_file: String, new_file: String) -> void:
 	cache.update_path(old_file, new_file)
 
 func _on_resource_saved(res: Resource) -> void:
-	if res is RationalComponent:
-		cache.add_root(res)
-		print("Adding root... %s" % res)
-		print_rich("Resource saved: %s([color=yellow]%s[/color]) @ [color=pink]%s[/color]" % [res.resource_name, res, res.resource_path])
+	if res is Script: return
+	print_rich("Resource saved: [color=yellow]%s[/color] @ [color=pink]%s[/color]" % [res, res.resource_path])
+	#if res is RationalComponent:
+		#print("Adding root... %s" % res)
+		#print_rich("Resource saved: %s([color=yellow]%s[/color]) @ [color=pink]%s[/color]" % [res.resource_name, res, res.resource_path])
 
-## Adds '@tool' to RationalComponent Scripts that don't have it already.
+## TODO: Adds '@tool' to RationalComponent Scripts that don't have it already.
 func _on_script_created(script: Script) -> void:
-	if not script or not script.get_base_script() or not Util.class_is_valid(script.get_base_script().get_global_name()):
-		print("Script '%s' doesn't extend RationalComponent" % script)
-		return
+	if not script: return
+	print_rich("Script Created: [color=green]%s[/color] [color=yellow]%s[/color] @ [color=pink]%s[/color]" % [script.get_global_name(), script])
+	var base: Script = script.get_base_script()
+	while base and base.get_global_name() != &"RationalComponent":
+		base = base.get_base_script()
 	
+	if not base:
+		return
+
 	print("New script is tool: %s" % script.is_tool())
 	print("New script contains '@tool': %s" % script.source_code.containsn("@tool"))
-
-func _on_scene_saved(filepath: String) -> void:
-	print("Scene saved: %s" % filepath)
-
-#endregion Signal Methods 
