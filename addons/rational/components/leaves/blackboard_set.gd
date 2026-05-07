@@ -35,7 +35,7 @@ func _tick(delta: float, blackboard: Blackboard, actor: Node) -> int:
 	if expression.has_execute_failed():
 		printerr("EXECUTION FAILED: %s" % self)
 		return FAILURE
-	print("%s => %s" % [resource_name, blackboard.get_value(section, "<INVALID>", section)])
+	#print("%s => %s" % [resource_name, blackboard.get_value(section, "<INVALID>", section)])
 	return SUCCESS
 
 func get_value_expression() -> String:

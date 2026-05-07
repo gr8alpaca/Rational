@@ -28,14 +28,13 @@ func update_class_data() -> void:
 	class_data_updated.emit()
 
 func instantiate_script(script: GDScript) -> Object:
-	if not script: return
-	var class_object: Object
+	if not script: return null
 	if script.is_abstract():
 		printerr("Cannot instantiate class '%s': Class is abstract." % script.get_global_name())
-	else:
-		class_object = script.new()
-		class_object.set(&"resource_name", script.get_global_name())
-		
+		return null
+	
+	var class_object: Object = script.new()
+	class_object.set(&"resource_name", script.get_global_name())
 	return class_object
 
 func instantiate_class(_class: StringName) -> Object:
@@ -50,7 +49,6 @@ func instantiate_path(path: String) -> Object:
 		printerr("Cannot instantiate path '%s'." % path)
 		return null
 	return instantiate_script(load(path)) if script_path_is_valid(path) else null
-
 
 func class_get_data(_class: StringName) -> Dictionary:
 	return class_data.get(_class, {
@@ -84,7 +82,7 @@ func class_is_tool(_class: StringName) -> bool:
 
 func class_has_icon(_class: StringName) -> bool:
 	return class_get_icon(_class) != null
-	
+
 func class_has_script(_class: StringName) -> bool:
 	return class_get_script(_class) != null
 

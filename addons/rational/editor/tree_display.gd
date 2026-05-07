@@ -290,7 +290,7 @@ func move_items(to_position: Vector2, items: Array[TreeItem]) -> void:
 		return
 	
 	for comp: RationalComponent in top_components:
-		request_reparent.emit(comp, get_root_comp().find_parent(comp), target_parent, index)
+		request_reparent.emit(comp, comp.get_parent(), target_parent, index)
 
 
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:

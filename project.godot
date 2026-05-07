@@ -24,7 +24,6 @@ config/icon="uid://clj3qqsrh4fdg"
 
 [debug]
 
-settings/stdout/verbose_stdout=true
 file_logging/enable_file_logging=true
 file_logging/max_log_files=10
 gdscript/warnings/unassigned_variable=0

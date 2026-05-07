@@ -8,24 +8,11 @@ func _no_tick(delta: float, board: Blackboard, actor: Node) -> int:
 	return children[0].no_tick(delta, board, actor)
 
 func _tick(delta: float, board: Blackboard, actor: Node) -> int:
-	if children.is_empty(): 
-		printerr("Decorator '%s' has no children" % resource_name)
-		breakpoint
+	if not children.is_empty(): 
+		match children[0].tick(delta, board, actor):
+			SUCCESS: return FAILURE
+			FAILURE: return SUCCESS
+			RUNNING: return RUNNING
 	
-	match children[0].tick(delta, board, actor):
-		SUCCESS: return FAILURE
-		FAILURE: return SUCCESS
-		RUNNING: return RUNNING
-	
+	printerr("Decorator '%s' has no children" % resource_name)
 	return FAILURE
-
-#func remove_child(child: RationalComponent) -> void:
-	#print("INVERTER REMOVE CHILD...")
-	#super(child)
-
-func _notification(what: int) -> void:
-	match what:
-		NOTIFICATION_POSTINITIALIZE:
-			print("Inverter %s POSTINITIALIZED" % _to_string())
-		NOTIFICATION_PREDELETE:
-			print("Inverter %s PREDELETE" % (resource_name + " | " + resource_path))

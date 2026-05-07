@@ -20,11 +20,11 @@
 [ext_resource type="Script" uid="uid://b084a27qrwlfn" path="res://addons/rational/components/sequence.gd" id="16_f0c8p"]
 [ext_resource type="Script" uid="uid://dslcu3blcrgyx" path="res://addons/rational/components/decorators/succeeder.gd" id="17_8sece"]
 [ext_resource type="Script" uid="uid://nluwfj1jnkvo" path="res://addons/rational/components/leaves/condition_expression.gd" id="17_q1v5c"]
-[ext_resource type="Script" uid="uid://lp2l3w30rxd3" path="res://addons/rational/components/decorators/failer.gd" id="18_4t32f"]
 [ext_resource type="Script" uid="uid://bwdobsxt3tlmo" path="res://TestScene/RationalObjects/move.gd" id="19_4t32f"]
 [ext_resource type="Script" uid="uid://msgesjor62tm" path="res://TestScene/player.gd" id="19_f0c8p"]
 [ext_resource type="Script" uid="uid://dq5d3qx2jtck3" path="res://addons/rational/components/decorators/inverter.gd" id="19_mg37k"]
 [ext_resource type="Script" uid="uid://cugqq0rl38kp7" path="res://addons/rational/components/fallback.gd" id="20_leic3"]
+[ext_resource type="Resource" uid="uid://biyy15bsy8r7i" path="res://TestScene/RationalObjects/blackboard.tres" id="21_4t32f"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_0cnec"]
 animations = [{
@@ -124,8 +124,12 @@ script = ExtResource("17_q1v5c")
 condition = "board.get_local(\"area\").get_overlapping_bodies().has(board.get_local(\"player\"))"
 
 [sub_resource type="Resource" id="Resource_phjxm"]
-resource_name = "Failer"
-script = ExtResource("18_4t32f")
+resource_name = "BlackboardSet"
+script = ExtResource("15_mg37k")
+key = "target_global_position"
+use_expression = true
+value = null
+value_expression = "board.get_local(\"player\").global_position"
 
 [sub_resource type="Resource" id="Resource_xvw0u"]
 resource_name = "TargetSetInverter"
@@ -147,9 +151,11 @@ script = ExtResource("16_f0c8p")
 children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_wh884"), SubResource("Resource_k0gel"), SubResource("Resource_xeqm5")])
 metadata/_custom_type_script = "uid://b084a27qrwlfn"
 metadata/tree = "%RationalTree"
+metadata/tree_id = 1753521134577
 
 [sub_resource type="Resource" id="Resource_8sece"]
 script = ExtResource("13_6m14f")
+global_data = ExtResource("21_4t32f")
 metadata/_custom_type_script = "uid://6ug5fa63l34w"
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_b1mpv"]
@@ -174,10 +180,10 @@ script = ExtResource("20_leic3")
 children = Array[ExtResource("14_s7iw1")]([SubResource("Resource_mg37k")])
 metadata/_custom_type_script = "uid://cugqq0rl38kp7"
 metadata/_path_data = "Actor2/RationalTree2:root"
-metadata/tree = "%RationalTree2"
 
 [sub_resource type="Resource" id="Resource_1jrjd"]
 script = ExtResource("13_6m14f")
+global_data = ExtResource("21_4t32f")
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_8e8r4"]
 size = Vector2(50, 50)
@@ -197,7 +203,6 @@ autoplay = "success"
 unique_name_in_owner = true
 script = ExtResource("12_m8cgi")
 root = SubResource("Resource_xa1ah")
-root_id = "Resource_xa1ah"
 actor = NodePath("..")
 blackboard = SubResource("Resource_8sece")
 disabled = false
@@ -218,7 +223,6 @@ speed_scale = 1.1
 unique_name_in_owner = true
 script = ExtResource("12_m8cgi")
 root = SubResource("Resource_q1v5c")
-root_id = "Resource_q1v5c"
 actor = NodePath("..")
 blackboard = SubResource("Resource_1jrjd")
 

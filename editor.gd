@@ -1,20 +1,6 @@
 @tool
 extends EditorScript
 
-class TestIter:
-	const ARRAY:= ["ZERO", "ONE", "TWO"]
-	func _iter_init(iter: Array) -> bool:
-		iter[0] = [0, ARRAY]
-		return iter[0][0] < iter[0][1].size()
-
-	func _iter_next(iter: Array) -> bool:
-		iter[0][0] = iter[0][0] + 1
-		return iter[0][0] < iter[0][1].size()
-
-	func _iter_get(iter: Variant) -> Variant:
-		return iter[1][iter[0]] 
-
-
 const SCENE_PATH:= "res://TestScene/test_scene_character.tscn"
 
 const RATIONAL_SCRIPT_PATH := "res://addons/rational/components/rational_component.gd"
@@ -33,6 +19,9 @@ const TreeDisplay := preload("res://addons/rational/editor/tree_display.gd")
 const GraphEditor := preload("res://addons/rational/editor/graph_edit.gd")
 const Settings := preload("res://addons/rational/settings.gd")
 const RationalGraphNode = preload("uid://vsth43p1vl5f")
+
+@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:RationalComponent", PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_SCRIPT_VARIABLE | PROPERTY_USAGE_DEFAULT)
+var children: Array[RationalComponent]
 
 func _run() -> void:
 	print("Running...")
@@ -64,39 +53,11 @@ func _run() -> void:
 	const PATH_ROOT := "res://TestScene/test_scene_character.tscn::Resource_xa1ah"
 	
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
+	const TMP_PATH: String = "res://tmp.tres"
 	
-	root_file_tree.get_root().get_child(0).select(0)
+	var comp: RationalComponent = load(GUINEA_PIG)
+	comp.printraw_tree("", true)
 	
-	#file_system.update_file.call_deferred(SCENE)
-	#file_system.reimport_files(PackedStringArray([SCENE]))
-	#inspector_plugin._init()
-	return
-	var comp: Composite = load(PATH)
-	var comp_scene: Node = comp.get_local_scene()
-	#comp_scene.is_editable_instance()
-	#packed = packed.duplicate_deep(Resource.DEEP_DUPLICATE_ALL)
-	#var err = ResourceSaver.save(packed)
-	#var path: String = "res://temp.tscn"
-	#var err = ResourceSaver.save(ResourceLoader.load(SCENE).duplicate_deep(Resource.DEEP_DUPLICATE_ALL), path, )
-	#print("Saved => %s" % error_string(err))
-	
-	return
-	#var loaded_root: Composite = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE) if ResourceLoader.exists(path) else null
-	#var root: Composite = ResourceLoader.get_cached_ref(path) if ResourceLoader.has_cached(path) else null
-	#var local_scene:= root.get_local_scene()
-	#printt(scene, local_scene)
-	#
-	#root.resource_name = "RootTest"
-	
-	#var err = ResourceSaver.save(root, root.resource_path, )
-	#if err != OK:
-		#print(error_string(err))
-	#EditorInterface.save_scene.call_deferred()
-	#printt(loaded_root.get_instance_id(), root.get_instance_id())
-	#printt(loaded_root, root, loaded_root == root)
-	
-	
-
 
 func get_roots_in_scene(scene: PackedScene) -> Array[RationalComponent]:
 	var result: Array[RationalComponent]
@@ -185,10 +146,8 @@ func get_packed_resources(type: StringName, packed: PackedScene) -> PackedString
 			result.append("%s: %s" % [element.get_class(), element.resource_path])
 	return result
 
-
 func _on_gui_focus_changed(focus: Control) -> void:
 	print_rich("Focus:\t[color=pink]%s[/color]\t@(%1.0f,%1.0f)" % [focus, focus.global_position.x, focus.global_position.y])
-	
 
 func print_node_tree(node: Node, level: int = 0) -> void:
 	const INDENT: String = "⎯⎯"

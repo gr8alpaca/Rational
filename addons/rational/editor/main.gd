@@ -84,23 +84,16 @@ func _on_file_dialog_canceled() -> void:
 	if file_dialog.file_selected.is_connected(_on_file_selected):
 		file_dialog.file_selected.disconnect(_on_file_selected)
 
-
-func edit(rational_object: Object) -> void:
-	if rational_object is RationalTree:
-		edit_tree(rational_object)
-	elif rational_object is RationalComponent:
-		edit_root(rational_object)
-
 func edit_tree(tree: RationalTree) -> void:
+	if not tree: return
+	if not EditorInterface.get_inspector().get_edited_object() == tree:
+		EditorInterface.inspect_object(tree, "root", true)
+	cache.edit_root(tree.root, true)
 	cache.edit_rational_tree(tree)
 
-func edit_root(root: RationalComponent) -> void:
-	#cache.edit_root(root)
-	#EditorInterface.set_main_screen_editor("Rational")
-	cache.edit_root(root)
-	EditorInterface.get_editor_main_screen()
-	EditorInterface.set_main_screen_editor("Rational")
-
+## Only shows the root in the editor without the inspector 
+func edit_root(root: RationalComponent, editor_only: bool = false) -> void:
+	cache.edit_root(root, editor_only)
 
 func init_shortcuts() -> void:
 	var file_panel_shortcut: Shortcut = Util.get_shortcut(&"toggle_files_panel")

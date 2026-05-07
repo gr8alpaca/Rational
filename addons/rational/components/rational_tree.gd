@@ -12,11 +12,6 @@ enum ProcessThread {IDLE, PHYSICS, NONE}
 
 @export var root: RationalComponent: set = set_root
 
-# ALERT TBR DEBUG ONLY
-@export_custom(0, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_READ_ONLY)
-var root_id: String:
-	get(): return root.resource_path.get_slice("::", 1) if root else ""
-
 @export var actor: Node: set = set_actor
 
 @export var blackboard: Blackboard: set = set_blackboard
@@ -28,28 +23,33 @@ var root_id: String:
 var status: int = -1
 #var last_tick: int = -1
 
+
+func _enter_tree() -> void:
+	if not Engine.is_editor_hint(): return
+	#RationalDebuggerMessages.register_tree()
+
+
+func _exit_tree() -> void:
+	pass
+
+
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		update_process()
-		if root:
-			root.set_meta(&"tree_id", get_instance_id())
-			#root.set_meta(&"path", str())
-		editor_state_changed.connect(_on_editor_state_changed)
 		return
 	
 	blackboard = Blackboard.new() if not blackboard else blackboard
 	actor = get_parent() if not actor else actor
 	blackboard.set_value("actor", actor)
 	
-	if name == &"RationalTree" and root:
-		root.print_tree_pretty()
-	
 	update_process()
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint(): return
 	tick(delta)
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint(): return
 	tick(delta)
 
 func tick(delta: float) -> int:
@@ -61,16 +61,14 @@ func can_tick() -> bool:
 	return not disabled and not Engine.is_editor_hint() and root and blackboard
 
 func set_root(val: RationalComponent) -> void:
-	if root and root != val and root.get_meta(&"tree_id", -1) == get_instance_id():
-		root.set_meta(&"tree_id", null)
-		root.set_meta(&"path", null)
+	if root:
+		root.set_node(null)
 	
 	root = val
 	update_process()
 	
 	if root:
-		root.set_meta(&"tree_id", get_instance_id())
-		#root.set_meta(&"path", "%s:root" % owner.get_path_to(self))
+		root.set_node(self)
 
 func update_process() -> void:
 	set_process(process_thread == ProcessThread.IDLE and can_tick())
@@ -101,5 +99,11 @@ func set_process_thread(val: ProcessThread) -> void:
 	process_thread = val
 	update_process()
 
-func _on_editor_state_changed() -> void:
-	print_rich("[color=orange]Editor State Changed %s[/color]" % name)
+func get_debug_info() -> Dictionary:
+	var data : Dictionary = {
+		id = get_instance_id(),
+		path = get_path(),
+		name = name,
+	}
+	
+	return data

@@ -147,15 +147,18 @@ func save() -> Error:
 		#else:
 			#root.take_over_path(path)
 			#err = OK
-			
+		
 	
 	elif not path.get_file().is_valid_filename() or not DirAccess.dir_exists_absolute(path.get_base_dir()):
 		err = ERR_FILE_BAD_PATH
 	
 	else:
-		#if root.resource_path != path:
-			#root.take_over_path(path)
-		err = ResourceSaver.save(root, path, ResourceSaver.FLAG_CHANGE_PATH)
+		if root.resource_path != path:
+			root.take_over_path(path)
+		err = ResourceSaver.save(root, path, )
+		if err == OK:
+			root = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
+		
 	
 	match err:
 		OK:
@@ -243,15 +246,15 @@ func load_deferred() -> Error:
 	
 	return ERR_TIMEOUT
 
-func save_local_scene() -> void:
-	if not get_local_scene(): return
-	if not is_part_of_edited_scene(): 
-		EditorInterface.open_scene_from_path
-		return
-	var current_scene: String = EditorInterface.get_edited_scene_root().scene_file_path
-	EditorInterface.open_scene_from_path(root.get_local_scene().scene_file_path)
-	EditorInterface.mark_scene_as_unsaved()
-	EditorInterface.open_scene_from_path.call_deferred(current_scene)
+#func save_local_scene() -> void:
+	#if not get_local_scene(): return
+	#if not is_part_of_edited_scene(): 
+		#EditorInterface.open_scene_from_path
+		#return
+	#var current_scene: String = EditorInterface.get_edited_scene_root().scene_file_path
+	#EditorInterface.open_scene_from_path(root.get_local_scene().scene_file_path)
+	#EditorInterface.mark_scene_as_unsaved()
+	#EditorInterface.open_scene_from_path.call_deferred(current_scene)
 
 ## Changes [member path] and [member root.resource_path] to [param to_path]
 func update_path(to_path: String) -> void:
@@ -259,14 +262,14 @@ func update_path(to_path: String) -> void:
 	if root and not root.resource_path == to_path:
 		take_over_path()
 
-func is_saved() -> bool:
-	return not is_loaded() or not root or not EditorInterface.is_object_edited(root)
 
-func has_unsaved_changes() -> bool:
-	return is_loaded() and root and EditorInterface.is_object_edited(root)
+## Returns [code]true[/code] if there are pending save changes.
+func is_edited() -> bool:
+	return root and is_loaded() and EditorInterface.is_object_edited(root)
 
 func set_saved_version(version: int) -> void:
 	saved_version = version
+	unsaved_changes_changed.emit()
 	print("Version: %d | Edited: %s " % [saved_version, EditorInterface.is_object_edited(root), ])
 
 ## Call when making changes to root.
@@ -278,14 +281,14 @@ func change_version(old: int, new: int) -> void:
 	
 	elif new == saved_version:
 		saved_version = -1
-		set_object_edited(false)
+		set_edited(false)
 	
 	if saved_version != -1:
-		set_object_edited(true)
+		set_edited(true)
 		
 	#print("Change version %d => %d | Saved version: %d" % [old, new, saved_version])
 
-func set_object_edited(edited: bool) -> void:
+func set_edited(edited: bool) -> void:
 	var currently_edited: bool = EditorInterface.is_object_edited(root)
 	EditorInterface.set_object_edited(root, edited)
 	if currently_edited != edited:

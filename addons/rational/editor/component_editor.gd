@@ -94,7 +94,7 @@ func disconnect_signals() -> void:
 
 func get_component_properties(comp: Object) -> Array[Dictionary]:
 	var result: Array[Dictionary]
-	const IGNORED_PROPERTY_NAMES: PackedStringArray = ["children", "child", "resource_local_to_scene", "resource_path", "resource_name", "script"]
+	const IGNORED_PROPERTY_NAMES: PackedStringArray = ["children", "child", "resource_local_to_scene", "resource_path", "resource_name", "script", "parent"]
 	for property: Dictionary in comp.get_property_list():
 		if not (property.usage & PROPERTY_USAGE_EDITOR): continue
 		if property.name.contains("metadata/"): continue

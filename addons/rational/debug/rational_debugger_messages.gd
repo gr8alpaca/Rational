@@ -1,9 +1,7 @@
 class_name RationalDebuggerMessages
 
 static func can_send_message() -> bool:
-	#TBR
-	return false
-	
+	return false #TBR
 	return not Engine.is_editor_hint() and OS.has_feature("editor")
 
 static func register_tree(beehave_tree: Dictionary) -> void:
@@ -25,7 +23,6 @@ static func process_interrupt(instance_id: int, blackboard: Dictionary = {}) -> 
 static func process_begin(instance_id: int, blackboard: Dictionary = {}) -> void:
 	if can_send_message():
 		EngineDebugger.send_message("rational:process_begin", [instance_id, blackboard])
-
 
 static func process_end(instance_id: int, blackboard: Dictionary = {}) -> void:
 	if can_send_message():

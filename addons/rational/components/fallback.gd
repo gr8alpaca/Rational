@@ -10,7 +10,6 @@ func _no_tick(delta: float, board: Blackboard, actor: Node) -> int:
 
 func _tick(delta: float, board: Blackboard, actor: Node) -> int:
 	for child: RationalComponent in children:
-		print("Falling back to %s" % child.resource_name)
 		var status: int = child.tick(delta, board, actor)
 		if status != FAILURE: return status
 	return FAILURE

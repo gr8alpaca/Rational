@@ -6,13 +6,14 @@ class_name Composite extends RationalComponent
 signal child_added(child: RationalComponent)
 signal child_removed(child: RationalComponent)
 
-@export var children: Array[RationalComponent] = []: set = set_children 
+@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:RationalComponent", PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_SCRIPT_VARIABLE | PROPERTY_USAGE_DEFAULT)
+var children: Array[RationalComponent]: set = set_children
 
 @abstract func _no_tick(delta: float, board: Blackboard, actor: Node) -> int
 
 @abstract func _tick(delta: float, board: Blackboard, actor: Node) -> int
 
-## Doesn't do anything except [code]null[/code] check currently.
+## Only checks for [code]null[/code] currently.
 func can_parent(child: RationalComponent) -> bool:
 	return child != null
 
@@ -20,7 +21,7 @@ func can_parent(child: RationalComponent) -> bool:
 func add_child(child: RationalComponent, idx: int = -1) -> void:
 	if not can_parent(child): return
 	
-	if not (-1 <= idx and idx <= get_child_count()):
+	if not (- 1 <= idx and idx <= get_child_count()):
 		printerr("The calculated index %s is out of bounds (the array has %s elements). Defaulting child to end of array." % [idx, get_child_count()])
 		idx = -1
 	
@@ -31,7 +32,7 @@ func add_child(child: RationalComponent, idx: int = -1) -> void:
 	elif has_child(child):
 		child = child.duplicate()
 	
-	if idx == -1:
+	if idx == -1 or idx == get_child_count():
 		children.push_back(child)
 	else:
 		children.insert(idx, child)
@@ -61,40 +62,40 @@ func remove_child(child: RationalComponent) -> void:
 
 func set_children(val: Array[RationalComponent]) -> void:
 	val = val.filter(can_parent)
-	if val == children: return
+	if val == get_children(): return
 	
-	var previous_children: Array[RationalComponent] = children
+	var previous_children: Array[RationalComponent] = get_children()
 	children = val
 	
 	for child: RationalComponent in previous_children:
 		if child in children: continue
-		child.set_parent(self)
+		child.set_parent(null)
 		child.tree_changed.disconnect(notify_tree_changed)
 		child_removed.emit(child)
 	
 	for child: RationalComponent in children:
 		if child in previous_children: continue
-		child.set_parent(null)
+		child.set_parent(self)
 		child.tree_changed.connect(notify_tree_changed)
 		child_added.emit(child)
 	
 	children_changed.emit()
 	notify_tree_changed()
 
+
 func get_child(idx: int) -> RationalComponent:
 	if not (-get_child_count() <= idx and idx < get_child_count()):
-		printerr("The calculated index %s is out of bounds (the array has %s elements)." % [idx, get_child_count()]) 
+		print_debug("The calculated index %s is out of bounds (the array has %s elements)." % [idx, get_child_count()]) 
 		return null
 	return children[idx]
 
-
 func move_child(child: RationalComponent, to_index: int) -> void:
 	if not has_child(child):
-		printerr("Cannot move child not parented to '%s'." % self)
+		print_debug("Cannot move child not parented to '%s'." % self)
 		return
 	
 	if not (-get_child_count() <= to_index and to_index < get_child_count()):
-		printerr("The calculated index %s is out of bounds (the array has %s elements). Leaving the array untouched." % [to_index, get_child_count()]) 
+		print_debug("The calculated index %d is out of bounds (the array has %d elements). Leaving the array untouched." % [to_index, get_child_count()]) 
 		return
 	
 	var child_idx: int = get_child_index(child)

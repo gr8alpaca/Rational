@@ -18,7 +18,6 @@ static func get_selection() -> Object:
 static func get_undo_redo() -> Object:
 	return EditorInterface.get_editor_undo_redo()
 
-
 #region ClassData
 
 static func comp_get_icon(component: Object) -> Texture2D:

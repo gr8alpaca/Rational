@@ -3,5 +3,6 @@
 [ext_resource type="Script" uid="uid://6ug5fa63l34w" path="res://addons/rational/components/blackboard.gd" id="1_xv7hr"]
 
 [resource]
+resource_name = "TestSceneGlobal"
 script = ExtResource("1_xv7hr")
 metadata/_custom_type_script = "uid://6ug5fa63l34w"

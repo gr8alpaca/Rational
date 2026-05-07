@@ -64,7 +64,6 @@ func set_edited_tree(val: RootData) -> void:
 	
 	edited_tree_changed.emit(val)
 
-
 ## Sets [param tree_data] as the [member edited_tree] and opens [param tree_data.root] in the Rational editor
 ## and [EditorInpsector]. If [param editor_only] is [code]true[/code] then the editor will edit
 ## [param tree_data]  without setting [EditorInspector] and changing editor screens.
@@ -72,23 +71,25 @@ func edit_tree(tree_data: RootData, editor_only: bool = false) -> void:
 	if not tree_data or not tree_data in root_data_list: return
 	if not editor_only:
 		inspect_object(tree_data.root)
-		EditorInterface.set_main_screen_editor("Rational")
+	EditorInterface.set_main_screen_editor("Rational")
 	set_edited_tree(tree_data)
 
 ## Will create data if it doesn't already exist and
 ## [method comp_is_root] returns [code]true[/code] for [param root].
 func edit_root(root: RationalComponent, editor_only: bool = false) -> void:
 	if not root: return
-	if not comp_is_root(root):
-		push_warning("Cannot edit root %s as it is currently owned." % root)
-		return
-	
+	var real_root: RationalComponent = root.get_root()
+	if real_root != root:
+		pass
+	#if not comp_is_root(root):
+		#push_warning("Cannot edit root %s as it is currently owned." % root)
+		#return
 	edit_tree(get_or_add_root(root), editor_only)
 
 
 ## Returns [code]true[/code] if [param comp] is not owned and therefore a tree root. 
 func comp_is_root(comp: RationalComponent) -> bool:
-	return comp and not comp.is_built_in() or has_root(comp) or not root_data_list.any(data_owns_comp.bind(comp))
+	return comp and comp.is_root()
 
 func comp_get_owner(comp: RationalComponent) -> RootData:
 	for data: RootData in root_data_list:
@@ -101,10 +102,6 @@ func data_owns_comp(data: RootData, comp: RationalComponent) -> bool:
 
 func data_owns_path(data: RootData, path: String) -> void:
 	pass
-
-func edit_rational_tree(tree: RationalTree) -> void:
-	if not tree: return
-	edit_root(tree.root)
 
 func edit_file(path: String) -> void:
 	if not FileAccess.file_exists(path): return
@@ -153,7 +150,7 @@ func has_id(id: int) -> bool:
 	return get_id(id) != null
 
 func add_data(root_data: RootData) -> void:
-	if not root_data or has_data(root_data): return
+	if not root_data or has_data(root_data): return 
 	if root_data.is_closed(): return
 	
 	root_data_list.push_back(root_data)
@@ -171,12 +168,11 @@ func get_or_add_root(root: RationalComponent) -> RootData:
 func add_root(root: RationalComponent) -> RootData:
 	if not root: return null
 	
-	if not comp_is_root(root):
-		push_warning("Cannot add root %s to Rational cache as it is not a root." % root)
-		return null
+	root = root.get_root()
 	
 	if has_root(root):
 		return root_get_data(root)
+	
 	var data: RootData = RootData.new(root.resource_path, root)
 	add_data(data)
 	return data
@@ -202,7 +198,7 @@ func erase_data(data: RootData) -> void:
 	if data in root_data_list:
 		root_data_list.erase(data)
 	
-	if data.has_unsaved_changes() and data.is_external():
+	if data.is_edited() and data.is_external():
 		data.save()
 	
 	store_data_backup(data)
@@ -273,7 +269,7 @@ func get_save_path(file: String = FILE_CACHE) -> String:
 func get_unsaved_status(scene_path: String) -> String:
 	var unsaved_roots: PackedStringArray = PackedStringArray()
 	for rd: RootData in (scene_get_data(scene_path) if scene_path else root_data_list):
-		if not rd.has_unsaved_changes(): continue
+		if not rd.is_edited(): continue
 		unsaved_roots.push_back("%s(#%d) - %s" % [rd.name, rd.id, rd.get_scene_id()])
 	
 	if unsaved_roots.is_empty():
@@ -299,7 +295,7 @@ func save() -> void:
 	for rd: RootData in get_data_list():
 		if rd.is_temp(): continue
 		
-		if rd.has_unsaved_changes():
+		if rd.is_edited():
 			rd.save()
 		
 		root_data.push_back(rd.serialize())

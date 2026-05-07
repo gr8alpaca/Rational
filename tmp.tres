@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="Sequence" format=3 uid="uid://stdaw1lsyg0k"]
+
+[ext_resource type="Script" uid="uid://bf5yfufeku4t4" path="res://addons/rational/components/rational_component.gd" id="1_vqiea"]
+[ext_resource type="Script" uid="uid://lp2l3w30rxd3" path="res://addons/rational/components/decorators/failer.gd" id="2_lnvl3"]
+[ext_resource type="Script" uid="uid://b084a27qrwlfn" path="res://addons/rational/components/sequence.gd" id="2_vty3k"]
+
+[sub_resource type="Resource" id="Resource_hn0j2"]
+resource_name = "Failer"
+script = ExtResource("2_lnvl3")
+
+[sub_resource type="Resource" id="Resource_vqiea"]
+resource_name = "Sequence"
+script = ExtResource("2_vty3k")
+
+[sub_resource type="Resource" id="Resource_21gp5"]
+resource_name = "Failer"
+script = ExtResource("2_lnvl3")
+
+[sub_resource type="Resource" id="Resource_lnvl3"]
+resource_name = "Sequence"
+script = ExtResource("2_vty3k")
+
+[sub_resource type="Resource" id="Resource_g41eg"]
+resource_name = "Sequence"
+script = ExtResource("2_vty3k")
+
+[resource]
+resource_name = "Tmp"
+script = ExtResource("2_vty3k")
+children = Array[ExtResource("1_vqiea")]([SubResource("Resource_hn0j2"), SubResource("Resource_vqiea"), SubResource("Resource_21gp5"), SubResource("Resource_lnvl3"), SubResource("Resource_g41eg")])

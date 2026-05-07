@@ -1014,6 +1014,9 @@ func restore_graph_state(state: Dictionary) -> void:
 	
 	restoring_state = false
 
+func serialize_tree(root: RationalComponent) -> Dictionary:
+	return {}
+
 func comp_to_dict(comp: RationalComponent) -> Dictionary:
 	if not comp: return {}
 	var dict: Dictionary = {}
@@ -1177,11 +1180,13 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventKey:
 		match event.keycode:
 			
-			KEY_R:
-				printt(get_root_component())
+			KEY_R when active_root:
+				printt(active_root.root)
+				if ResourceLoader.has_cached(active_root.path):
+					print("Cached Ref == Root: ", active_root.root == ResourceLoader.get_cached_ref(active_root.path))
 			
 			KEY_T:
-				active_root.root.print_tree_pretty()
+				active_root.root.print_tree()
 			
 			KEY_L:
 				var focus_owner: Control = get_viewport().gui_get_focus_owner()

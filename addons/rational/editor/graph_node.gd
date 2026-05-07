@@ -46,6 +46,7 @@ var editor: ComponentEditor
 
 var horizontal: bool = false : set = set_horizontal
 var arranged: bool = false
+var debug_mode: bool = false
 
 var root: bool = false
 
@@ -226,9 +227,9 @@ func get_port_position(left: bool) -> Vector2:
 
 func set_status(status: int) -> void:
 	match status:
-		0: set_stylebox_overrides(Style.panel_success, Style.titlebar_success)
-		1: set_stylebox_overrides(Style.panel_failure, Style.titlebar_failure)
-		2: set_stylebox_overrides(Style.panel_running, Style.titlebar_running)
+		RationalComponent.SUCCESS: set_stylebox_overrides(Style.panel_success, Style.titlebar_success)
+		RationalComponent.FAILURE: set_stylebox_overrides(Style.panel_failure, Style.titlebar_failure)
+		RationalComponent.RUNNING: set_stylebox_overrides(Style.panel_running, Style.titlebar_running)
 		_: set_stylebox_overrides(Style.panel_normal, Style.titlebar_normal)
 
 
@@ -260,7 +261,7 @@ func set_component(val: RationalComponent) -> void:
 	update_display()
 	set_slots(not root, component is Composite)
 	
-	editor.visible = not is_inherited()
+	editor.visible = not is_inherited() and not debug_mode
 	editor.update_display(val if editor.visible else null)
 	resizable = editor.visible and editor.has_properties()
 	

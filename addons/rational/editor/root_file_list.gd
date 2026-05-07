@@ -133,7 +133,7 @@ func update_item(item: TreeItem) -> void:
 	item.set_tooltip_text(0, data_get_tooltip(data))
 
 func data_get_name(data: RootData) -> String:
-	return data.name + (" (*)" if data.has_unsaved_changes() else "") 
+	return data.name + (" (*)" if data.is_edited() else "") 
 
 func data_get_tooltip(data: RootData) -> String:
 	return "Type: %s\nPath: %s" % [Util.comp_get_class(data.root), data.path]
@@ -145,10 +145,9 @@ func erase_data(data: RootData) -> void:
 func _on_data_changed(item: TreeItem) -> void:
 	update_item(item)
 
-func _on_unsaved_changes_changed(data: RootData) -> void:
-	var item: TreeItem = data_get_item(data)
-	if item:
-		item.set_text(0, data_get_name(data))
+func _on_unsaved_changes_changed(item: TreeItem) -> void:
+	update_item(item)
+	#item.set_text(0, data_get_name(item_get_data(item)))
 
 func filter_list(filter: String = "") -> void:
 	for item: TreeItem in get_root().get_children():
@@ -161,27 +160,16 @@ func edit_data(data: RootData) -> void:
 	if not data: return
 	cache.edit_tree(data, true)
 
-#func edit_tree(tree: RationalTree) -> void:
-	#if not tree: return
-	#if not tree.root:
-		#prompt_new_root(tree)
-		#return
-	#
-	#cache.edit_root(tree.root)
-
 func select_data(data: RootData) -> void:
 	if not data: return
 	add_data(data)
 	var item: TreeItem = data_get_item(data)
 	if item.is_selected(0):
-		cache.is_Tree
 		edit_data(data)
 	item.select(0)
 	ensure_cursor_is_visible()
-	
 
 func _on_item_selected() -> void:
-	print("Item Selected %s" % get_selected().get_text(0))
 	edit_data(item_get_data(get_selected()))
 
 func _on_add_root_button_pressed() -> void:
