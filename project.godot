@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Rational"
 run/main_scene="res://TestScene/test_scene_character.tscn"
-config/features=PackedStringArray("4.6", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 run/max_fps=120
 boot_splash/bg_color=Color(0.0859838, 0.0859838, 0.0859837, 1)
 boot_splash/show_image=false
