@@ -61,7 +61,6 @@ func get_value() -> Variant:
 	return value
 
 func _validate_property(property: Dictionary) -> void:
-	super(property)
 	if not use_expression: return
 	match property.name:
 		"value":

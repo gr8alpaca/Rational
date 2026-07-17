@@ -16,8 +16,17 @@ static var titlebar_success: StyleBoxFlat
 static var titlebar_failure: StyleBoxFlat
 static var titlebar_running: StyleBoxFlat
 
+static var title_font: Font
+
 static func _static_init() -> void:
 	var theme: Theme = EditorInterface.get_editor_theme()
+	
+	var title_font: Font = theme.get_font(&"title_font", &"GraphNode").duplicate()
+	if title_font is FontVariation:
+		title_font.variation_embolden = 1
+	elif title_font is FontFile:
+		title_font.font_weight = 700
+	
 	titlebar_normal = theme.get_stylebox(&"titlebar", &"GraphNode").duplicate()
 
 	titlebar_success = titlebar_normal.duplicate()

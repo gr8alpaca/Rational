@@ -2,7 +2,6 @@
 extends GraphNode
 
 const Util := preload("../util.gd")
-const Style := preload("editor_style.gd")
 const ComponentEditor := preload("component_editor.gd")
 const TreePositionComponent := preload("tree_positioner.gd")
 
@@ -30,11 +29,6 @@ var component: RationalComponent: set = set_component
 		icon = value
 		icon_rect.texture = value
 
-
-var layout_size: float:
-	get: return size.y if horizontal else size.x
-
-
 var icon_rect: TextureRect
 var line_edit: LineEdit
 var titlebar_hbox: HBoxContainer
@@ -46,7 +40,6 @@ var editor: ComponentEditor
 
 var horizontal: bool = false : set = set_horizontal
 var arranged: bool = false
-var debug_mode: bool = false
 
 var root: bool = false
 
@@ -168,7 +161,7 @@ func shift_tree(offset: Vector2) -> void:
 	position_offset += offset
 
 func is_inherited() -> bool:
-	return not root and component and not component.is_built_in()
+	return component and component.has_parent() and not component.is_built_in()
 
 func get_component_class() -> StringName:
 	return component.get_script().get_global_name() if component else &""
@@ -221,17 +214,9 @@ func get_input_position() -> Vector2:
 
 func get_output_position() -> Vector2:
 	return Vector2(size.x, size.y / 2) if horizontal else Vector2(size.x / 2, size.y)
-
-func get_port_position(left: bool) -> Vector2:
-	return get_input_position() if left else get_output_position()
-
-func set_status(status: int) -> void:
-	match status:
-		RationalComponent.SUCCESS: set_stylebox_overrides(Style.panel_success, Style.titlebar_success)
-		RationalComponent.FAILURE: set_stylebox_overrides(Style.panel_failure, Style.titlebar_failure)
-		RationalComponent.RUNNING: set_stylebox_overrides(Style.panel_running, Style.titlebar_running)
-		_: set_stylebox_overrides(Style.panel_normal, Style.titlebar_normal)
-
+#
+#func get_port_position(left: bool) -> Vector2:
+	#return get_input_position() if left else get_output_position()
 
 ## Left == parent port. Right == children port.
 func set_slots(left_enabled: bool, right_enabled: bool) -> void:
@@ -261,7 +246,7 @@ func set_component(val: RationalComponent) -> void:
 	update_display()
 	set_slots(not root, component is Composite)
 	
-	editor.visible = not is_inherited() and not debug_mode
+	editor.visible = not is_inherited()
 	editor.update_display(val if editor.visible else null)
 	resizable = editor.visible and editor.has_properties()
 	
@@ -313,36 +298,6 @@ func _get_tooltip(at_position: Vector2) -> String:
 func set_horizontal(val: bool) -> void:
 	horizontal = val
 
-
-func set_stylebox_overrides(panel_stylebox: StyleBox, titlebar_stylebox: StyleBox) -> void:
-	if not has_theme_stylebox_override("panel") or panel_stylebox != Style.panel_normal:
-		if panels_tween:
-			panels_tween.kill()
-		
-		add_theme_stylebox_override("panel", panel_stylebox)
-		add_theme_stylebox_override("titlebar", titlebar_stylebox)
-	
-	if panels_tween:
-		return
-	
-	# Don't need to do anything if our colors are already the same as a normal
-	var cur_panel_stylebox: StyleBox = get_theme_stylebox("panel")
-	var cur_titlebar_stylebox: StyleBox = get_theme_stylebox("titlebar")
-	if cur_panel_stylebox.bg_color == Style.panel_normal.bg_color:
-		return
-	
-	# Apply a duplicate of our current panels that we can tween
-	add_theme_stylebox_override("panel", cur_panel_stylebox.duplicate())
-	add_theme_stylebox_override("titlebar", cur_titlebar_stylebox.duplicate())
-	cur_panel_stylebox = get_theme_stylebox("panel")
-	cur_titlebar_stylebox = get_theme_stylebox("titlebar")
-	
-	# Going back to normal is a fade
-	panels_tween = create_tween().set_parallel()
-	panels_tween.tween_property(cur_panel_stylebox, "bg_color", panel_stylebox.bg_color, 1.0)
-	panels_tween.tween_property(cur_panel_stylebox, "border_color", panel_stylebox.border_color, 1.0)
-	panels_tween.tween_property(cur_titlebar_stylebox, "bg_color", panel_stylebox.bg_color, 1.0)
-	panels_tween.tween_property(cur_titlebar_stylebox, "border_color", panel_stylebox.border_color, 1.0)
 
 func _notification(what: int) -> void:
 	match what:

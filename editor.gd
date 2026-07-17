@@ -1,17 +1,35 @@
 @tool
 extends EditorScript
 
+class MyIter:
+	var _data: Dictionary[Variant, Dictionary]
+	func _init(dat: Dictionary[Variant, Dictionary]) -> void:
+		_data = dat
+	
+	func _iter_init(iter: Array) -> bool:
+		iter[0] = [0, _data.keys()]
+		return iter[0][0] < iter[0][1].size()
+	
+	func _iter_next(iter: Array) -> bool:
+		iter[0][0] += 1
+		return iter[0][0] < iter[0][1].size()
+	
+	func _iter_get(iter: Variant) -> Variant:
+		return iter[1][iter[0]]
+
 const SCENE_PATH:= "res://TestScene/test_scene_character.tscn"
 
 const RATIONAL_SCRIPT_PATH := "res://addons/rational/components/rational_component.gd"
 
 const Util := preload("res://addons/rational/util.gd")
 
+const DebuggerPlugin := preload("res://addons/rational/debug/debugger.gd")
 const RationalPlugin := preload("res://addons/rational/plugin.gd")
 const InpsectorPlugin := preload("res://addons/rational/plugins/inspector/inspector_plugin.gd")
 const Cache := preload("res://addons/rational/data/cache.gd")
 const ClassData := preload("res://addons/rational/data/rational_class_data.gd")
 const Selection := preload("res://addons/rational/editor/selection.gd")
+const Style = preload("res://addons/rational/debug/editor_style.gd")
 
 const Main := preload("res://addons/rational/editor/main.gd")
 const RootFileList := preload("res://addons/rational/editor/root_file_list.gd")
@@ -36,6 +54,7 @@ func _run() -> void:
 	var tree_1: RationalTree = scene.get_node(^"%RationalTree") if scene and scene.scene_file_path == SCENE_PATH else null
 	var tree_2: RationalTree = scene.get_node(^"%RationalTree2") if scene and scene.scene_file_path == SCENE_PATH else null
 	
+	var debugger_plugin: DebuggerPlugin = plugin.debugger if plugin else null
 	var inspector_plugin: InpsectorPlugin = plugin.inspector_plugin if plugin else null
 	var cache: Cache = plugin.cache if plugin else null
 	var class_data: ClassData = plugin.class_data if plugin else null
@@ -55,9 +74,26 @@ func _run() -> void:
 	const FALLBACK_SCRIPT_PATH := "res://addons/rational/components/fallback.gd"
 	const TMP_PATH: String = "res://tmp.tres"
 	
-	var comp: RationalComponent = load(GUINEA_PIG)
-	comp.printraw_tree("", true)
+	var title_font: Font = EditorInterface.get_editor_theme().get_font(&"title_font", &"GraphNode").duplicate()
+	if title_font is FontVariation:
+		title_font.variation_embolden = 1
+	elif title_font is FontFile:
+		title_font.font_weight = 700
+	Style.title_font = title_font
+	#var _data: Dictionary[Variant, Dictionary] = {jdlkjfla = {heljkd = "kfjdlaf", afda = 4}, blah = {},}
+	#_data.set("default", {bleah = 9, "poop" = {}, "comp" = Sequence.new()})
+	#
+	#var iter:= MyIter.new(_data)
+	#for key in iter:
+		#printt(key, _data[key])
+	##
 	
+	
+
+	#printt(foo(_data))	
+
+func foo(data: Dictionary[Variant, Dictionary] = {}) -> Array[Dictionary]:
+	return Array(data.values(), TYPE_DICTIONARY, &"", null)
 
 func get_roots_in_scene(scene: PackedScene) -> Array[RationalComponent]:
 	var result: Array[RationalComponent]

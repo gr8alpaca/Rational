@@ -4,16 +4,22 @@
 @icon("../icons/RationalComponent.svg")
 class_name RationalComponent extends Resource
 
+## Max length of [member resource_name]
 const NAME_MAX_LENGTH: int = 64
 
 enum {SUCCESS, FAILURE, RUNNING}
 
+## Emitted when any change is made to the children of this component.
 signal children_changed
+
+## Emitted when any change is made to a direct or indirect child of this component.
 signal tree_changed
 
+## Parent instance ID. Use [method has_parent], [method get_parent] and [method set_parent] to get parent info.
 var parent_id: int = 0
 
-# May remove/reimplement in the futurej.
+## Instance ID of [RationalTree] this component is root of.
+## @experimental:  May remove/reimplement in the future.
 var node_id: int = 0
 
 ## Override this method to customize behavior when not receiving a tick...
@@ -48,7 +54,7 @@ func get_root_id() -> int:
 func is_root() -> bool:
 	return not has_parent()
 
-
+## Sets [RationalTree] instance this component is root of.
 func set_node(node: Node) -> void:
 	node_id = node.get_instance_id() if node else 0
 
@@ -57,7 +63,7 @@ func get_children(recursive: bool = false) -> Array[RationalComponent]:
 	var children: Array[RationalComponent]
 	return children
 
-## Emits [member tree_changed].
+## Emits [member tree_changed] and calls [method emit_changed].
 func notify_tree_changed() -> void:
 	tree_changed.emit()
 	emit_changed()
@@ -69,26 +75,63 @@ func has_child(comp: RationalComponent, recursive: bool = false) -> bool:
 			return true
 	return false
 
+## Returns [code]true[/code]/[code]false[/code]  if [param child] can be added as a child component.
 func can_parent(child: RationalComponent) -> bool:
 	return false
 
+## Returns the index of [param child] if it is parented, otherwise returns [code]-1[/code] 
 func get_child_index(child: RationalComponent) -> int:
 	return get_children().find(child)
 
+## Returns the child component at index [param idx].
 func get_child(idx: int) -> RationalComponent:
 	if not (-get_child_count() <= idx and idx < get_child_count()):
 		printerr("The calculated index %s is out of bounds (the array has %s elements)." % [idx, get_child_count()])
 		return null
 	return get_children()[idx]
 
+## Returns the number of children that are parented to this component.
 func get_child_count() -> int:
 	return get_children().size()
 
+## Returns the index of this component if it is parented, otherwise returns [code]-1[/code].
 func get_index() -> int:
 	return get_parent().get_child_index(self) if has_parent() else -1
 
+## Moves [param child] to index [param to_index].
 func move_child(child: RationalComponent, to_index: int) -> void:
 	pass
+
+## Do [b]not[/b] override this method, use [method _tick] instead.
+func tick(delta: float, board: Blackboard, actor: Node) -> int:
+	var result: int = _tick(delta, board, actor)
+	if board.debug_active:
+		RationalDebuggerHandle.process_tick(get_instance_id(), result, board.get_data())
+	return result
+
+## Do [b]not[/b] override this method, use [method _no_tick] instead.
+func no_tick(delta: float, board: Blackboard, actor: Node) -> int:
+	var result: int = _no_tick(delta, board, actor)
+	#RationalDebuggerHandle.process_tick(get_instance_id(),  result, board.get_data())
+	return _no_tick(delta, board, actor)
+
+## Prints tree to console in a similar format to [method Node.print_tree_pretty].
+func print_tree() -> void:
+	_tree_print("", true)
+
+## Returns a string containing what would be printed out by [method print_tree].
+func get_tree_string_pretty(prefix: String, is_last: bool) -> String:
+	var tree_string: String = prefix + (" ┖╴" if is_last else " ┠╴") + resource_name + "\n"
+	var prefix_extension: String = "   " if is_last else " ┃ "
+	for i: int in get_child_count():
+		tree_string += get_child(i).get_tree_string_pretty(prefix + prefix_extension, i == get_child_count() - 1)
+	return tree_string
+
+## Used internally to print this node and all children to console.
+func _tree_print(prefix: String = "", is_last: bool = true) -> void:
+	print(prefix + (" ┖╴" if is_last else " ┠╴") + resource_name)
+	for i: int in get_child_count():
+		get_child(i)._tree_print(prefix + ("   " if is_last else " ┃ "), i == get_child_count() - 1)
 
 func _set(property: StringName, value: Variant) -> bool:
 	if not Engine.is_editor_hint(): 
@@ -101,24 +144,6 @@ func _set(property: StringName, value: Variant) -> bool:
 			resource_path = value
 			emit_changed()
 	return false
-
-func _validate_property(property: Dictionary) -> void:
-	pass
-	#match property.name:
-		#&"children", &"resource_name":
-			#property.usage |= PROPERTY_USAGE_READ_ONLY
-
-## Do [b]not[/b] override this method, use [method _tick] instead.
-func tick(delta: float, board: Blackboard, actor: Node) -> int:
-	var result: int = _tick(delta, board, actor)
-	RationalDebuggerMessages.process_tick(get_instance_id(),  result, board.get_data())
-	return result
-
-## Do [b]not[/b] override this method, use [method _no_tick] instead.
-func no_tick(delta: float, board: Blackboard, actor: Node) -> int:
-	var result: int = _no_tick(delta, board, actor)
-	#RationalDebuggerMessages.process_tick(get_instance_id(),  result, board.get_data())
-	return _no_tick(delta, board, actor)
 
 func _get_property_list() -> Array[Dictionary]:
 	if not Engine.is_editor_hint(): return []
@@ -136,24 +161,5 @@ func _get(property: StringName) -> Variant:
 	if property == &"parent": return parent_id
 	return null
 
-#region Print
-
 func _to_string() -> String:
 	return "%s (%s)%s" % [resource_name, get_script().get_global_name(), " | %s" % resource_path if resource_path else ""]
-
-func print_tree() -> void:
-	_tree_print("", true)
-
-func get_tree_string_pretty(prefix: String, is_last: bool) -> String:
-	var tree_string: String = prefix + (" ┖╴" if is_last else " ┠╴") + resource_name + "\n"
-	var prefix_extension: String = "   " if is_last else " ┃ "
-	for i: int in get_child_count():
-		tree_string += get_child(i).get_tree_string_pretty(prefix + prefix_extension, i == get_child_count() - 1)
-	return tree_string
-
-func _tree_print(prefix: String = "", is_last: bool = true) -> void:
-	print(prefix + (" ┖╴" if is_last else " ┠╴") + resource_name)
-	for i: int in get_child_count():
-		get_child(i)._tree_print(prefix + ("   " if is_last else " ┃ "), i == get_child_count() - 1)
-
-#endregion Print

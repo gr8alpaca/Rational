@@ -41,6 +41,9 @@ func is_horizontal() -> bool:
 func get_size() -> Vector2:
 	return item.size if item else Vector2()
 
+func get_layout_size() -> float:
+	return get_size()[int(not is_horizontal())]
+
 func calculate_tree(depth: int = 0) -> void:
 	init_node(depth)
 	init_lateral()
@@ -126,6 +129,11 @@ func calculate_final_x(accum: float = 0.0) -> void:
 	accum += mod
 	for child: RefCounted in children:
 		child.calculate_final_x(accum)
+
+## Sets [member item.position_offset] equal to [method get_position]. Then calls this method for all [member children].
+func apply_position() -> void:
+	if item: 
+		item.position_offset = get_position()
 
 func get_position() -> Vector2:
 	var cell_size:= get_cell_size()

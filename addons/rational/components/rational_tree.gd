@@ -1,3 +1,4 @@
+## [Node] that manages a [RationalComponent] tree.
 @tool
 @icon("../icons/RationalTree.svg")
 class_name RationalTree extends Node
@@ -7,8 +8,15 @@ signal tree_disabled
 
 signal ticked(value: int)
 
-enum {SUCCESS, FAILURE, RUNNING}
-enum ProcessThread {IDLE, PHYSICS, NONE}
+## Determines the [Thread] to attempt to call [method tick].
+enum ProcessThread {
+	## Tree will attempt to call [method tick] during [method _process] calls.
+	IDLE = 0, 
+	## Tree will attempt to call [method tick] during [method _physics_process] calls.
+	PHYSICS = 1, 
+	## Tree [method tick] will not be called and must be done manually.
+	NONE = 2,
+}
 
 @export var root: RationalComponent: set = set_root
 
@@ -23,24 +31,23 @@ enum ProcessThread {IDLE, PHYSICS, NONE}
 var status: int = -1
 #var last_tick: int = -1
 
+var debug_active: bool
 
 func _enter_tree() -> void:
-	if not Engine.is_editor_hint(): return
-	#RationalDebuggerMessages.register_tree()
-
+	if Engine.is_editor_hint(): return
+	RationalDebuggerHandle.register_tree(get_debug_data())
 
 func _exit_tree() -> void:
-	pass
-
+	if Engine.is_editor_hint(): return
+	RationalDebuggerHandle.unregister_tree(get_instance_id())
 
 func _ready() -> void:
-	if Engine.is_editor_hint():
-		update_process()
-		return
-	
-	blackboard = Blackboard.new() if not blackboard else blackboard
-	actor = get_parent() if not actor else actor
-	blackboard.set_value("actor", actor)
+	if not Engine.is_editor_hint():
+		# Set to clear any null values.
+		blackboard = blackboard
+		actor = actor
+		
+		blackboard.set_value("actor", actor)
 	
 	update_process()
 
@@ -49,10 +56,13 @@ func _process(delta: float) -> void:
 	tick(delta)
 
 func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint(): return
 	tick(delta)
 
 func tick(delta: float) -> int:
+	if Engine.is_editor_hint(): return RationalComponent.FAILURE
+	blackboard.debug_active = debug_active
+	if debug_active:
+		RationalDebuggerHandle.process_begin(get_instance_id(), blackboard.get_debug_data())
 	status = root.tick(delta, blackboard, actor)
 	ticked.emit(status)
 	return status
@@ -77,33 +87,50 @@ func update_process() -> void:
 
 func set_disabled(val: bool) -> void:
 	disabled = val
-	
 	update_process()
-	
-	if disabled:
-		tree_disabled.emit()
-	else:
-		tree_enabled.emit()
+	(tree_disabled if disabled else tree_enabled).emit()
 
 func set_blackboard(val: Blackboard) -> void:
-	if not Engine.is_editor_hint() and not val:
-		val = Blackboard.new()
-	blackboard = val
+	if Engine.is_editor_hint():
+		blackboard = val
+		return
+	
+	blackboard = val if val else Blackboard.new()
+	if actor:
+		blackboard.set_actor(actor)
 
 func set_actor(val: Node) -> void:
-	if not Engine.is_editor_hint() and not val:
-		val = get_parent()
-	actor = val
+	if Engine.is_editor_hint():
+		actor = val
+		return
+	
+	actor = val if val else get_parent()
+	blackboard.set_actor(actor)
 
 func set_process_thread(val: ProcessThread) -> void:
 	process_thread = val
 	update_process()
 
-func get_debug_info() -> Dictionary:
-	var data : Dictionary = {
-		id = get_instance_id(),
-		path = get_path(),
-		name = name,
+## Return data for debugger.
+func get_debug_data() -> Dictionary:
+	return {
+		"id" = get_instance_id(),
+		"name" = get_name(),
+		"class" = get_script().get_global_name(),
+		"path" = get_path(),
+		"root" = comp_get_data(root),
 	}
-	
+
+## Returns debugger data for [param comp] and all children recursively.
+func comp_get_data(comp: RationalComponent) -> Dictionary:
+	if not comp: return {}
+	var data: Dictionary = {
+		"id" = comp.get_instance_id(),
+		"name" = comp.get_name(),
+		"class" = comp.get_script().get_global_name(),
+		"children" = Array([], TYPE_DICTIONARY, &"", null),
+	}
+	for child: RationalComponent in comp.get_children():
+		if not child: continue
+		data.children.push_back(comp_get_data(child))
 	return data

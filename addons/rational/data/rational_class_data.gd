@@ -25,6 +25,7 @@ func add_class_data(_class: StringName) -> void:
 func update_class_data() -> void:
 	class_data.clear()
 	add_class_data(&"RationalComponent")
+	add_class_data(&"RationalTree")
 	class_data_updated.emit()
 
 func instantiate_script(script: GDScript) -> Object:
@@ -129,3 +130,11 @@ func get_script_list() -> PackedStringArray:
 		if dict.get("script", false):
 			result.push_back(dict.script)
 	return result
+
+## Returns a [Dictionary] of all class names and their corresponding icon.
+func get_icon_data() -> Dictionary[StringName, Texture2D]:
+	var icon_data: Dictionary[StringName, Texture2D]
+	for _class: StringName in class_data:
+		icon_data[_class] = class_get_icon(_class)
+	return icon_data
+	

@@ -4,6 +4,7 @@ extends EditorPlugin
 const Util := preload("util.gd")
 const Settings := preload("settings.gd")
 
+const DebugPlugin := preload("debug/debugger.gd")
 const InpsectorPlugin := preload("plugins/inspector/inspector_plugin.gd")
 
 const Cache := preload("data/cache.gd")
@@ -13,6 +14,7 @@ const Selection := preload("editor/selection.gd")
 const WindowWrapper := preload("editor/window_wrapper.gd")
 const Editor := preload("editor/main.gd")
 
+var debugger: DebugPlugin
 var inspector_plugin: InpsectorPlugin
 
 var cache: Cache
@@ -51,19 +53,30 @@ func _enter_tree() -> void:
 	inspector_plugin = InpsectorPlugin.new()
 	add_inspector_plugin(inspector_plugin)
 	
-	print_rich("[b]Rational™ initialized[/b]")
+	debugger = DebugPlugin.new()
+	add_debugger_plugin(debugger)
+	
+	if OS.is_stdout_verbose():
+		print("Plugin '%s' initialized." % _get_plugin_name())
 
 
 func _exit_tree() -> void:
 	window_wrapper.queue_free()
 	
+	remove_debugger_plugin(debugger)
+	debugger = null
+	
 	remove_inspector_plugin(inspector_plugin)
 	inspector_plugin = null
+	
 	cache = null
 	class_data = null
 	selection = null
 	
 	Engine.unregister_singleton(&"Rational")
+	
+	if OS.is_stdout_verbose():
+		print("Plugin '%s' deconstructed." % _get_plugin_name())
 
 func _handles(object: Object) -> bool:
 	return object is RationalComponent

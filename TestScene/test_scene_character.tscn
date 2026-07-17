@@ -267,3 +267,21 @@ root_node = NodePath("../..")
 root_node = NodePath("../..")
 tree_root = SubResource("AnimationNodeStateMachine_wh884")
 anim_player = NodePath("../AnimationPlayer")
+
+[node name="GraphEdit" type="GraphEdit" parent="." unique_id=1853221612]
+custom_minimum_size = Vector2(500, 500)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GraphNode" type="GraphNode" parent="GraphEdit" unique_id=1397359243]
+layout_mode = 0
+offset_left = 35.0
+offset_top = 118.0
+offset_right = 196.0
+offset_bottom = 250.0
+mouse_filter = 1
+position_offset = Vector2(35, 118)
+title = "Blah"

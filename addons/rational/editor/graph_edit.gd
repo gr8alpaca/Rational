@@ -1467,7 +1467,6 @@ func get_top_clipboard_components() -> Array[RationalComponent]:
 
 func clipboard_copy(components: Array[RationalComponent]) -> void:
 	clipboard.assign(components.filter(comp_is_valid).duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL))
-	
 
 func clipboard_clear() -> void:
 	clipboard.clear()

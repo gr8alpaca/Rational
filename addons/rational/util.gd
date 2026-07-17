@@ -45,6 +45,13 @@ static func class_is_valid(_class: StringName) -> bool:
 static func script_path_is_valid(path: String) -> bool:
 	return get_class_data().script_path_is_valid(path)
 
+## Iterates through global class list to get icon for [param _class].
+static func class_get_icon(_class: StringName) -> Texture2D:
+	for data: Dictionary in ProjectSettings.get_global_class_list():
+		if data.class != _class: continue
+		return load(data.icon) if data.icon else class_get_icon(data.base)
+	return get_icon(&"FileBroken")
+
 #endregion ClassData
 
 #region Settings

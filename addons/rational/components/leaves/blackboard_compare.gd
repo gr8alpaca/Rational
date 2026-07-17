@@ -46,7 +46,7 @@ func _no_tick(delta: float, board: Blackboard, actor: Node) -> int:
 
 func _validate_property(property: Dictionary) -> void:
 	if Engine.is_editor_hint(): return
-	super(property)
+	#super(property)
 	match property.name:
 		"operator":
 			var arr: PackedStringArray = property.hint_string.split(",")

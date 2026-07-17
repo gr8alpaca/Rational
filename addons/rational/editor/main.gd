@@ -79,7 +79,6 @@ func _on_file_selected(path: String, data: RootData) -> void:
 		var err:
 			printerr("Could not save data at path '%s': %s" % [path, error_string(err)])
 
-
 func _on_file_dialog_canceled() -> void:
 	if file_dialog.file_selected.is_connected(_on_file_selected):
 		file_dialog.file_selected.disconnect(_on_file_selected)
